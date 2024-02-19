@@ -1,0 +1,65 @@
+% This is a template for the title page of any assignment or report.
+% Owner: Bratin Mondal
+% Usage:
+% 1. Replace the placeholders with your information.
+% 2. Add any additional information, if needed.
+% 3. Add your university logo or any other image.
+% 4. Add any other details, if needed, below the image.
+% 5. Compile the document to see the output.
+
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\renewcommand{\rmdefault}{ptm}
+
+% Define macros for information
+\newcommand{\myName}{Bratin Mondal}
+\newcommand{\myRollNumber}{21CS10016}
+\newcommand{\myCourse}{*Course Name*}
+\newcommand{\myAssignment}{*Number*}
+\newcommand{\myAssignmentTitle}{*Assignment Title*}
+\newcommand{\myUniversity}{Indian Institute of Technology Kharagpur}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    
+    {\Huge{\textbf{\myCourse}}}
+    \vspace{0.2cm}
+    
+    {\Huge{Assignment \myAssignment}}
+    
+    \vspace{2cm}
+    
+    % Add your university logo or any other image here
+    \includegraphics[width=0.5\textwidth]{iit_kgp_logo.png}
+    
+    \vspace{2cm}
+    
+    % Add your report title here
+    {\Huge\textbf{\myAssignmentTitle}}
+    
+    \vspace{1cm}
+    
+    % Add any other details like your name, date, etc.
+    {\Large\textbf{\myName}} 
+    \vspace{0.2cm}
+    
+    \large{\myRollNumber}    
+    \vspace{1cm}
+    
+    % Add any additional information, if needed
+    {\large\textit{Department of Computer Science and Engineering,}}
+    
+    {\large\textit{\myUniversity}}
+    \vspace{0.3cm}
+    
+    % Two lines above the image
+    \hrule 
+    \vspace{0.5cm}
+    
+    % Add any other details, if needed, below the image
+    
+\end{titlepage}
+
+\end{document}
