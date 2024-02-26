@@ -313,3 +313,43 @@ COLOPHON
 
 Linux                                 2017-09-15                               RECV(2)
 ```
+
+### Summary
+1. The recv(), recvfrom(), and recvmsg() calls are used to receive messages from a socket. They may be used to receive data on both connectionless and connection-oriented sockets.
+2. Prototypes:
+   ```c
+   ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+   ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+   ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags);
+   ```
+3. <font color="red"> If `src_addr` is not NULL, and the underlying protocol provides the source address of the message, that source address is placed in the buffer pointed to by `src_addr`. In this case, `addrlen` is a value-result argument. Before the call, it should be initialized to the size of the buffer associated with `src_addr`. Upon return, `addrlen` is updated to contain the actual size of the source address. The returned address is truncated if the buffer provided is too small; in this case, `addrlen` will return a value greater than was supplied to the call. </font>
+4. The `recv()` call is normally used only on a connected socket (see connect(2)). It is equivalent to the call:
+   ```c
+   recvfrom(fd, buf, len, flags, NULL, 0);
+   ```
+5. Return value: These calls return the number of bytes received, or -1 if an error occurred. In the event of an error, errno is set to indicate the error.
+6. If no messages are available at the socket, the receive calls wait for a message to arrive, unless the socket is nonblocking (see fcntl(2)), in which case the value -1 is returned and the external variable errno is set to EAGAIN or EWOULDBLOCK. The receive calls normally return any data available, up to the requested amount, rather than waiting for receipt of the full amount requested.
+
+## Flags
+1. `MSG_CMSG_CLOEXEC` (recvmsg() only; since Linux 2.6.23): Set the close-on-exec flag for the file descriptor received via a UNIX domain file descriptor using the SCM_RIGHTS operation (described in unix(7)). This flag is useful for the same reasons as the O_CLOEXEC flag of open(2).
+2. `MSG_DONTWAIT` (since Linux 2.2): <font color="red"> Enables nonblocking operation; if the operation would block, the call fails with the error EAGAIN or EWOULDBLOCK. This provides similar behavior to setting the O_NONBLOCK flag (via the fcntl(2) F_SETFL operation), but differs in that MSG_DONTWAIT is a per-call option, whereas O_NONBLOCK is a setting on the open file description (see open(2)), which will affect all threads in the calling process and as well as other processes that hold file descriptors referring to the same open file description. </font>
+3. `MSG_ERRQUEUE` (since Linux 2.2): This flag specifies that queued errors should be received from the socket error queue. The error is passed in an ancillary message with a type dependent on the protocol (for IPv4 IP_RECVERR). The user should supply a buffer of sufficient size. See cmsg(3) and ip(7) for more information. The payload of the original packet that caused the error is passed as normal data via msg_iovec. The original destination address of the datagram that caused the error is supplied via msg_name.
+4. `MSG_OOB`: This flag requests receipt of out-of-band data that would not be received in the normal data stream. Some protocols place expedited data at the head of the normal data queue, and thus this flag cannot be used with such protocols.
+5. `MSG_PEEK`: <font color="red"> This flag causes the receive operation to return data from the beginning of the receive queue without removing that data from the queue. Thus, a subsequent receive call will return the same data. </font>
+6. `MSG_TRUNC` (since Linux 2.2): <font color="red"> For raw (AF_PACKET), Internet datagram (since Linux 2.4.27/2.6.8), netlink (since Linux 2.6.22), and UNIX datagram (since Linux 3.4) sockets: return the real length of the packet or datagram, even when it was longer than the passed buffer. </font>
+7. `MSG_WAITALL` (since Linux 2.2): <font color="red"> This flag requests that the operation block until the full request is satisfied. However, the call may still return less data than requested if a signal is caught, an error or disconnect occurs, or the next data to be received is of a different type than that returned. This flag has no effect for datagram sockets. </font>
+
+### Return value
+1. These calls return the number of bytes received, or -1 if an error occurred. In the event of an error, errno is set to indicate the error.
+2. When a stream socket peer has performed an orderly shutdown, the return value will be 0 (the traditional "end-of-file" return).
+
+### Errors
+1. EAGAIN or EWOULDBLOCK: The socket is marked nonblocking and the receive operation would block, or a receive timeout had been set and the timeout expired before data was received. POSIX.1 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
+2. EBADF: The argument sockfd is an invalid file descriptor.
+3. ECONNREFUSED: A remote host refused to allow the network connection (typically because it is not running the requested service).
+4. EFAULT: The receive buffer pointer(s) point outside the process's address space.
+5. EINTR: The receive was interrupted by delivery of a signal before any data was available; see signal(7).
+6. EINVAL: Invalid argument passed.
+7. ENOMEM: Could not allocate memory for recvmsg().
+8. ENOTCONN: The socket is associated with a connection-oriented protocol and has not been connected (see connect(2) and accept(2)).
+9. ENOTSOCK: The file descriptor sockfd does not refer to a socket.
