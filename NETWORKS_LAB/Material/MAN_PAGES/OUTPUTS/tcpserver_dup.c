@@ -6,15 +6,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
 
-#define PORT 8180
+#define PORT 8181
 #define MAXLINE 1024
 
 int main()
 {
-    int sockfd;
-    struct sockaddr_in serv_addr;
+    int sockfd, newsockfd;
+    struct sockaddr_in serv_addr, cli_addr;
+    int n;
+    socklen_t clilen;
     char buffer[MAXLINE];
 
     // Create socket file descriptor
@@ -24,7 +25,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    // Initialize server address structure
+    // Initialize socket structure
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -39,24 +40,32 @@ int main()
     }
 
     // Listen for incoming connections
-    // if (listen(sockfd, 5) == -1)
-    // {
-    //     perror("listen failed");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
-
-    printf("Server listening on port %d\n", PORT);
-    int new_socket;
-    struct sockaddr_in cli_addr;
-    int cli_len = sizeof(cli_addr);
-    if ((new_socket = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len)) == -1)
+    if (listen(sockfd, 5) == -1)
     {
-        printf("error no: %d\n", errno);
-        perror("accept failed");
+        perror("listen failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-    return 0;
+    serv_addr.sin_port = htons(2 * PORT);
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
+    {
+        perror("bind failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(sockfd, 5) == -1)
+    {
+        perror("listen failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
+    {
+        perror("accept failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 }

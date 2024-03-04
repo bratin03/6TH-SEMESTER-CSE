@@ -6,17 +6,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fcntl.h> // Include this header for fcntl()
 #include <errno.h>
 
-#define PORT 8181
+#define PORT 8180
 #define MAXLINE 1024
 
 int main()
 {
     int sockfd;
     struct sockaddr_in serv_addr;
-    char buffer[MAXLINE] = "Hello, Server!";
-    int n;
+    char buffer[MAXLINE];
 
     // Create socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -29,27 +29,26 @@ int main()
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    // Attempt to send message without connecting
-    if ((n = send(sockfd, buffer, strlen(buffer), 0)) == -1)
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
     {
-        if (errno == ENOTCONN)
-        {
-            perror("send failed - Socket is not connected");
-        }
-        else
-        {
-            perror("send failed");
-        }
+        perror("Invalid address/ Address not supported");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-    printf("Message sent.\n");
+    // Connect the client socket to server
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
+    {
+        perror("connect failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-    // Close socket
-    close(sockfd);
+    strcpy(buffer, "Hello, Server!");
+    send(sockfd, buffer, strlen(buffer), 0);
+    // Do something else, or sleep for some time to allow non-blocking connect to complete
 
     return 0;
 }

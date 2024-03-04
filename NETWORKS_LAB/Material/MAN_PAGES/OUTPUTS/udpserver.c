@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <errno.h>
 
 #define PORT 8181
 #define MAXLINE 1024
@@ -41,18 +42,24 @@ int main()
 
     len = sizeof(cliaddr);
 
-    while (1)
+    // if(listen(sockfd, 5) == -1)
+    // {
+    //     printf("error no: %d\n", errno);
+    //     perror("listen failed");
+    //     close(sockfd);
+    //     exit(EXIT_FAILURE);
+    // }
+
+    if (accept(sockfd, (struct sockaddr *)&cliaddr, (socklen_t *)&len) == -1)
     {
-        n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-        buffer[n] = '\0';
-        printf("Client : %s\n", buffer);
-        char *hello = "Hello from server";
-        if (sendto(sockfd, (const char *)hello, strlen(hello), 0, (const struct sockaddr *)&cliaddr, len) < 0)
-        {
-            perror("sendto failed");
-            close(sockfd);
-        }
+        printf("error no: %d\n", errno);
+        perror("accept failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
     }
+
+    buffer[n] = '\0';
+    printf("Client : %s\n", buffer);
 
     close(sockfd);
     return 0;
