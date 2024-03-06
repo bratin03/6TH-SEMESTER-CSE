@@ -1,346 +1,211 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "event.h"
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int P_count = 0, R_count = 0, S_count = 0;
-int P_count_total = 0, R_count_total = 0, S_count_total = 0;
-int P_count_current = 0, R_count_current = 0, S_count_current = 0;
-int isdoctor = 0;
-pthread_mutex_t doctor_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t doctor_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t P_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t P_mutex_2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t P_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t R_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t R_mutex_2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t R_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t S_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t S_mutex_2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t S_cond = PTHREAD_COND_INITIALIZER;
-eventQ E;
+#define START_HOUR 9
+#define VERBOSE
+int time_store = 0;
+
+pthread_mutex_t p_wait_mutex;
+pthread_cond_t p_wait_cond;
+pthread_mutex_t mutex;
+
+pthread_mutex_t assistant_mutex;
+pthread_cond_t assistant_cond;
+
+int patient_count = 0;
+int patient_service = 0;
+
+int doctor_available = 0;
+int doctor_done = 0;
+
+pthread_mutex_t doctor_mutex;
+pthread_cond_t doctor_cond;
+
 typedef struct
 {
-    char type;
-    int time;
-    int duration;
     int id;
-} event_with_id;
-
-event_with_id initalizer(event e, int x)
-{
-    event_with_id e1;
-    e1.type = e.type;
-    e1.time = e.time;
-    e1.duration = e.duration;
-    e1.id = x;
-    return e1;
-}
+    int endtime;
+} parameters_thread;
 
 typedef struct
 {
-    int count;
-    pthread_mutex_t mutex;
-    pthread_cond_t condition;
-    struct QueueNode *front;
-    struct QueueNode *rear;
-} CountingSemaphore;
+    int hour;
+    int minute;
+} time_struct;
 
-// Node for queue
-typedef struct QueueNode
+time_struct get_time(int t)
 {
-    pthread_t thread_id;
-    struct QueueNode *next;
-} QueueNode;
-
-void counting_semaphore_init(CountingSemaphore *semaphore, int initial_count)
-{
-    semaphore->count = initial_count;
-    pthread_mutex_init(&semaphore->mutex, NULL);
-    pthread_cond_init(&semaphore->condition, NULL);
-    semaphore->front = NULL;
-    semaphore->rear = NULL;
+    t += (60 * START_HOUR);
+    time_struct time;
+    time.hour = t / 60;
+    time.minute = t % 60;
+    return time;
 }
 
-void counting_semaphore_wait(CountingSemaphore *semaphore)
+void *patient_function(void *arg)
 {
-    pthread_mutex_lock(&semaphore->mutex);
-    while (semaphore->count <= 0)
+    printf("Patient");
+    parameters_thread *p = (parameters_thread *)arg;
+    int id = p->id;
+    int endtime = p->endtime;
+    while (1)
     {
-        // Create a new node for the waiting thread
-        QueueNode *new_node = (QueueNode *)malloc(sizeof(QueueNode));
-        new_node->thread_id = pthread_self();
-        new_node->next = NULL;
-
-        // Enqueue the thread
-        if (semaphore->front == NULL)
-            semaphore->front = new_node;
+        pthread_mutex_lock(&p_wait_mutex);
+#ifdef VERBOSE
+        printf("Patient %d is waiting.\n", id);
+#endif
+        pthread_cond_wait(&p_wait_cond, &p_wait_mutex);
+        pthread_mutex_lock(&mutex);
+        if (patient_service == id)
+        {
+#ifdef VERBOSE
+            printf("Patient %d is being released.\n", id);
+#endif
+            pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&p_wait_mutex);
+            break;
+        }
         else
-            semaphore->rear->next = new_node;
-        semaphore->rear = new_node;
-
-        pthread_cond_wait(&semaphore->condition, &semaphore->mutex);
+        {
+            printf("Patient Service: %d\n", patient_service);
+        }
+        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&p_wait_mutex);
     }
-    semaphore->count--;
-    pthread_mutex_unlock(&semaphore->mutex);
-}
-
-void counting_semaphore_post(CountingSemaphore *semaphore)
-{
-    pthread_mutex_lock(&semaphore->mutex);
-    semaphore->count++;
-
-    // Dequeue a waiting thread if the count allows
-    if (semaphore->front != NULL)
-    {
-        QueueNode *temp = semaphore->front;
-        semaphore->front = semaphore->front->next;
-        if (semaphore->front == NULL)
-            semaphore->rear = NULL;
-        pthread_cond_signal(&semaphore->condition);
-        free(temp);
-    }
-
-    pthread_mutex_unlock(&semaphore->mutex);
-}
-
-void counting_semaphore_destroy(CountingSemaphore *semaphore)
-{
-    pthread_mutex_destroy(&semaphore->mutex);
-    pthread_cond_destroy(&semaphore->condition);
-}
-
-CountingSemaphore P_sem, R_sem, S_sem;
-CountingSemaphore Procees_Exectuion_Semaphore;
-
-int t = 0;
-
-void *P_thread(void *arg)
-{
-    event_with_id e = *(event_with_id *)arg;
-    // pthread_mutex_lock(&P_mutex);
-    // pthread_mutex_lock(&P_mutex_2);
-    // pthread_cond_wait(&P_cond, &P_mutex_2);
-    // printf("ID: %d\n", e.id);
-    counting_semaphore_wait(&P_sem);
-    int initial_time = 540;
-    int current_time = t;
-    int actual_time = current_time + initial_time;
-    int hour = actual_time / 60;
-    int minute = actual_time % 60;
-    int end_time = actual_time + e.duration;
-    int end_hour = end_time / 60;
-    int end_minute = end_time % 60;
-    printf("\tPatient P%d enters at %d:%d, leaves at %d:%d\n", e.id, hour, minute, end_hour, end_minute);
-    event new_event;
-    new_event.type = 'D';
-    new_event.time = end_time;
-    new_event.duration = 0;
-    E = addevent(E, new_event);
-    counting_semaphore_post(&Procees_Exectuion_Semaphore);
+    time_struct start_time = get_time(time_store);
+    time_struct end_time = get_time(time_store + endtime);
+    printf("Patient %d is being served from %02d:%02d to %02d:%02d.\n", id, start_time.hour, start_time.minute, end_time.hour, end_time.minute);
+    pthread_cond_signal(&assistant_cond);
     pthread_exit(0);
 }
 
-void *R_thread(void *arg)
+void *doctor_function(void *arg)
 {
-    event_with_id e = *(event_with_id *)arg;
-    pthread_mutex_lock(&R_mutex);
-    pthread_cond_wait(&R_cond, &R_mutex);
-    int initial_time = 540;
-    int current_time = t;
-    int actual_time = current_time + initial_time;
-    int hour = actual_time / 60;
-    int minute = actual_time % 60;
-    int end_time = actual_time + e.duration;
-    int end_hour = end_time / 60;
-    int end_minute = end_time % 60;
-    printf("\tPatient R%d enters at %d:%d, leaves at %d:%d\n", e.id, hour, minute, end_hour, end_minute);
-    event new_event;
-    pthread_exit(0);
-}
-
-void *S_thread(void *arg)
-{
-    event_with_id e = *(event_with_id *)arg;
-    pthread_mutex_lock(&S_mutex);
-    pthread_cond_wait(&S_cond, &S_mutex);
-    int initial_time = 540;
-    int current_time = t;
-    int actual_time = current_time + initial_time;
-    int hour = actual_time / 60;
-    int minute = actual_time % 60;
-    int end_time = actual_time + e.duration;
-    int end_hour = end_time / 60;
-    int end_minute = end_time % 60;
-    printf("\tPatient S%d enters at %d:%d, leaves at %d:%d\n", e.id, hour, minute, end_hour, end_minute);
-    pthread_exit(0);
-}
-
-void *D_thread(void *arg)
-{
-    int i = 0;
-    while (1 && i < 60)
+    while (1)
     {
         pthread_mutex_lock(&doctor_mutex);
         pthread_cond_wait(&doctor_cond, &doctor_mutex);
-        i++;
+        if (doctor_done)
+        {
+            pthread_mutex_unlock(&doctor_mutex);
+            break;
+        }
+        pthread_mutex_unlock(&doctor_mutex);
+        time_struct start_time = get_time(time_store);
+        printf("Doctor has next visitor at %02d:%02d.\n", start_time.hour, start_time.minute);
+        pthread_cond_signal(&assistant_cond);
     }
+    pthread_exit(0);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    char *fname = "ARRIVAL.txt";
-    pthread_attr_t attr;
-    E = initEQ(fname);
-    event D_start;
-    D_start.type = 'D';
-    D_start.time = 0;
-    D_start.duration = 0;
-    E = addevent(E, D_start);
-    pthread_t P, R, S, D;
-    pthread_create(&D, NULL, D_thread, NULL);
-    int i = 0;
 
-    counting_semaphore_init(&P_sem, 0);
-    counting_semaphore_init(&R_sem, 0);
-    counting_semaphore_init(&S_sem, 0);
-    counting_semaphore_init(&Procees_Exectuion_Semaphore, 0);
-    while (!emptyQ(E) && i < 60)
+    pthread_mutex_init(&p_wait_mutex, NULL);
+    pthread_cond_init(&p_wait_cond, NULL);
+    pthread_mutex_init(&assistant_mutex, NULL);
+    pthread_cond_init(&assistant_cond, NULL);
+    pthread_mutex_init(&doctor_mutex, NULL);
+    pthread_cond_init(&doctor_cond, NULL);
+
+    char filename[] = "ARRIVAL.txt";
+    eventQ EQ = initEQ(filename);
+    eventQ PQ;
+    PQ.n = 0;
+    PQ.Q = (event *)malloc(128 * sizeof(event));
+    event e;
+    e.duration = 0;
+    e.time = 0;
+    e.type = 'D';
+    EQ = addevent(EQ, e);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_t doctor;
+    pthread_create(&doctor, &attr, doctor_function, NULL);
+    while (!emptyQ(EQ))
     {
-        i++;
-        event e = nextevent(E);
-        E = delevent(E);
-        t = e.time;
+        e = nextevent(EQ);
+        EQ = delevent(EQ);
+        time_store = e.time;
+        printf("Time: %d\n", time_store);
+        printf("Event: %c\n", e.type);
         if (e.type == 'D')
         {
-            if (P_count != 0 || R_count != 0 || S_count != 0)
+            int patient_waiting = patient_count - patient_service;
+            if (patient_waiting > 0)
             {
-                int initial_time = 540;
-                int current_time = t;
-                int actual_time = current_time + initial_time;
-                int hour = actual_time / 60;
-                int minute = actual_time % 60;
-                printf("Doctor has next visitor at %d:%d\n", hour, minute);
                 pthread_cond_signal(&doctor_cond);
-                if (R_count != 0)
-                {
-                    R_count--;
-                    pthread_cond_signal(&R_cond);
-                    event new_event;
-                    E = addevent(E, new_event);
-                }
-                else if (P_count != 0)
-                {
-                    counting_semaphore_post(&P_sem);
-                    P_count--;
-                    counting_semaphore_wait(&Procees_Exectuion_Semaphore);
-
-                    // pthread_cond_signal(&P_cond);
-                }
-                else if (S_count != 0)
-                {
-                    S_count--;
-                    pthread_cond_signal(&S_cond);
-                    event new_event;
-                    new_event.type = 'D';
-                    new_event.time = e.time + e.duration;
-                    new_event.duration = 0;
-                    E = addevent(E, new_event);
-                }
+                pthread_mutex_lock(&assistant_mutex);
+                pthread_cond_wait(&assistant_cond, &assistant_mutex);
+                pthread_mutex_unlock(&assistant_mutex);
+                patient_service++;
+                pthread_cond_broadcast(&p_wait_cond);
+                pthread_mutex_lock(&assistant_mutex);
+                pthread_cond_wait(&assistant_cond, &assistant_mutex);
+                pthread_mutex_unlock(&assistant_mutex);
+                event e = nextevent(PQ);
+                PQ = delevent(PQ);
+                int endtime = e.duration + time_store;
+                event event_doctor;
+                event_doctor.time = endtime;
+                event_doctor.duration = 0;
+                event_doctor.type = 'D';
+                EQ = addevent(EQ, event_doctor);
+            }
+            if (patient_count == 25 && patient_service == 25)
+            {
+                doctor_done = 1;
+                pthread_cond_signal(&doctor_cond);
+                break;
             }
             else
             {
-                isdoctor = 1;
+                doctor_available = 1;
             }
         }
         else
         {
-            if (e.type = 'P')
+            // printf("Patient %d arrived.\n", patient_count);
+            PQ = addevent(PQ, e);
+            if (patient_count == 25)
             {
-                P_count_total++;
-                P_count++;
-                int initial_time = 540;
-                int current_time = t;
-                int actual_time = current_time + initial_time;
-                int hour = actual_time / 60;
-                int minute = actual_time % 60;
-                printf("\tPatient P%d arrives at %d:%d\n", P_count_total, hour, minute);
-                pthread_attr_init(&attr);
-                printf("ID: %d\n", P_count_total);
-                event_with_id e1 = initalizer(e, P_count_total);
-                pthread_create(&P, &attr, P_thread, &e1);
+                printf("No more patients are allowed.\n");
+                continue;
             }
-            else if (e.type = 'R')
+            patient_count++;
+            parameters_thread *p = (parameters_thread *)malloc(sizeof(parameters_thread));
+            p->id = patient_count;
+            p->endtime = e.duration;
+            pthread_t patient;
+            printf("Patient %d arrived.\n", patient_count);
+            pthread_create(&patient, &attr, patient_function, p);
+            printf("Patient %d is waiting.\n", patient_count);
+            if (doctor_available)
             {
-                R_count_total++;
-                R_count++;
-                int initial_time = 540;
-                int current_time = t;
-                int actual_time = current_time + initial_time;
-                int hour = actual_time / 60;
-                int minute = actual_time % 60;
-                printf("\tPatient R%d arrives at %d:%d\n", R_count_total, hour, minute);
-                pthread_attr_init(&attr);
-                event_with_id e1 = initalizer(e, R_count_total);
-                pthread_create(&R, &attr, R_thread, &e1);
-            }
-            else
-            {
-                S_count_total++;
-                S_count++;
-                int initial_time = 540;
-                int current_time = t;
-                int actual_time = current_time + initial_time;
-                int hour = actual_time / 60;
-                int minute = actual_time % 60;
-                printf("\tPatient S%d arrives at %d:%d\n", S_count_total, hour, minute);
-                pthread_attr_init(&attr);
-                event_with_id e1 = initalizer(e, S_count_total);
-                pthread_create(&S, &attr, S_thread, &e1);
-            }
-            if (isdoctor == 1)
-            {
-                int initial_time = 540;
-                int current_time = t;
-                int actual_time = current_time + initial_time;
-                int hour = actual_time / 60;
-                int minute = actual_time % 60;
-                printf("Doctor has next visitor at %d:%d\n", hour, minute);
+                doctor_available = 0;
                 pthread_cond_signal(&doctor_cond);
-                if (e.type = 'P')
-                {
-                    // pthread_cond_signal(&P_cond);
-                    counting_semaphore_post(&P_sem);
-                    P_count--;
-                    counting_semaphore_wait(&Procees_Exectuion_Semaphore);
-                    event new_event;
-                    new_event.type = 'D';
-                    new_event.time = e.time + e.duration;
-                    new_event.duration = 0;
-                    // E = addevent(E, new_event);
-                }
-                else if (e.type = 'R')
-                {
-                    pthread_cond_signal(&R_cond);
-                    event new_event;
-                    new_event.type = 'D';
-                    new_event.time = e.time + e.duration;
-                    new_event.duration = 0;
-                    E = addevent(E, new_event);
-                }
-                else
-                {
-                    pthread_cond_signal(&S_cond);
-                    event new_event;
-                    new_event.type = 'D';
-                    new_event.time = e.time + e.duration;
-                    new_event.duration = 0;
-                    E = addevent(E, new_event);
-                }
-                isdoctor = 0;
+                pthread_mutex_lock(&assistant_mutex);
+                pthread_cond_wait(&assistant_cond, &assistant_mutex);
+                pthread_mutex_unlock(&assistant_mutex);
+                pthread_mutex_lock(&mutex);
+
+                patient_service++;
+                pthread_mutex_unlock(&mutex);
+                pthread_cond_broadcast(&p_wait_cond);
+                pthread_mutex_lock(&assistant_mutex);
+                pthread_cond_wait(&assistant_cond, &assistant_mutex);
+                pthread_mutex_unlock(&assistant_mutex);
+                event e = nextevent(PQ);
+                PQ = delevent(PQ);
+                int endtime = e.duration + time_store;
+                event event_doctor;
+                event_doctor.time = endtime;
+                event_doctor.duration = 0;
+                event_doctor.type = 'D';
+                EQ = addevent(EQ, event_doctor);
             }
         }
     }

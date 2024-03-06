@@ -56,7 +56,7 @@ bin.s
 bin.cpp
 .vscode
 bin.*
-bin*.c
+bin.c
 
 # Ignore compiled files
 *.o
