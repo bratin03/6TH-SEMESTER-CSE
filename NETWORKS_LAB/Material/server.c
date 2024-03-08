@@ -1,71 +1,53 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <netinet/in.h>
+
+#define PORT 8080
+#define MAXLINE 1024
 
 int main()
 {
-    int listen_fd, conn_fd;
-    struct sockaddr_in serv_addr, cli_addr;
-    socklen_t cli_len = sizeof(cli_addr);
+    int sockfd;
+    char buffer[MAXLINE];
+    struct sockaddr_in servaddr, cliaddr;
 
-    // Create socket
-    if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    // Creating socket file descriptor
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        perror("socket");
+        perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // Set up server address
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Listen on any available interface
-    serv_addr.sin_port = htons(8080);              // Listen on port 8080
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&cliaddr, 0, sizeof(cliaddr));
 
-    // Bind socket to the server address
-    if (bind(listen_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
+    // Filling server information
+    servaddr.sin_family = AF_INET; // IPv4
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
+
+    // Bind the socket with the server address
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
     {
-        perror("bind");
+        perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
-    // Set socket to listen for connections
-    if (listen(listen_fd, 5) == -1)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
+    int len, n;
 
-    // Accept connections
+    len = sizeof(cliaddr); // len is value/result
+
     while (1)
     {
-        if ((conn_fd = accept(listen_fd, (struct sockaddr *)&cli_addr, &cli_len)) == -1)
-        {
-            perror("accept");
-            continue;
-        }
-
-        // Get the local address and port number of the connected socket
-        struct sockaddr_in local_addr;
-        socklen_t local_len = sizeof(local_addr);
-        if (getsockname(conn_fd, (struct sockaddr *)&local_addr, &local_len) == -1)
-        {
-            perror("getsockname");
-            close(conn_fd);
-            continue;
-        }
-
-        printf("Connection accepted from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-        printf("Server is listening on port: %d\n", ntohs(local_addr.sin_port));
-
-        // Handle the connection (read/write data)
-
-        close(conn_fd); // Close the connection socket when done
+        n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
+        buffer[n] = '\0';
+        printf("Client : %s\n", buffer);
+        fflush(stdout);
+        n = sendto(sockfd, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+        printf("Message sent.\n");
     }
-
-    close(listen_fd); // Close the listening socket
 
     return 0;
 }
