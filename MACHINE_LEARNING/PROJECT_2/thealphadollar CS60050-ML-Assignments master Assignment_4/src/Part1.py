@@ -58,10 +58,11 @@ class NeuralNetwork:
         self.test_accuracy = list()
         self.train_accuracy = list()
 
-        layer_weights = self.weightInitialiser(13, self.num_neurons_per_layer, self.num_neurons_out_layer)
+        layer_weights = self.weightInitialiser(7, self.num_neurons_per_layer, self.num_neurons_out_layer)
         layer_bias = self.biasInitialiser(self.num_neurons_per_layer, self.num_neurons_out_layer)
 
         train_prediction, test_prediction = self.predict(layer_weights, layer_bias)
+        print(f"Initial Train Accuracy = {self.curAccu(train_prediction, self.train_data_labels)}")
         self.train_accuracy.append(self.curAccu(train_prediction, self.train_data_labels))
         self.test_accuracy.append(self.curAccu(test_prediction, self.test_data_labels))
 
@@ -80,19 +81,20 @@ class NeuralNetwork:
 
         self.model_ = {"layer_weights": layer_weights,
                        "layer_bias": layer_bias}
+        print("layer_weights: ", layer_weights) 
+        
           
     def dataLoader(self):
         """
         Load data and convert into mini batches.
         """
-        self.train_data = pd.read_csv('../data/training_data_prep.csv', header=None)
-        self.test_data = pd.read_csv('../data/testing_data_prep.csv', header=None)
-
-        self.train_data_feats = self.train_data.iloc[:, :-1].to_numpy()
-        self.train_data_labels = self.train_data.iloc[:, -1].to_numpy()
-
-        self.test_data_feats = self.test_data.iloc[:, :-1].to_numpy()
-        self.test_data_labels = self.test_data.iloc[:, -1].to_numpy()
+        self.train_data = pd.read_csv('../data/training_data.csv', header=None)
+        self.test_data = pd.read_csv('../data/testing_data.csv', header=None)
+        
+        self.train_data_feats = self.train_data.iloc[:, :-3].to_numpy()
+        self.train_data_labels = self.train_data.iloc[:, -3:].to_numpy()
+        self.test_data_feats = self.test_data.iloc[:, :-3].to_numpy()
+        self.test_data_labels = self.test_data.iloc[:, -3:].to_numpy()
         
         self.train_feat_batch = self.dfSplit(self.train_data_feats)
         self.train_label_batch = self.dfSplit(self.train_data_labels)
@@ -105,7 +107,7 @@ class NeuralNetwork:
         return z_exp / interim_sum
     
     def crossEntropy(self, predicted, real):
-        return np.mean((predicted - real)**2)
+        return (predicted-real) / real.shape[0]
     
     def preProcess(self):
         # Already done in preprocessing part and files saved.
@@ -127,7 +129,7 @@ class NeuralNetwork:
         feat_list.append(features)
         for layer_weight, layer_bia in zip(layer_weights[:-1], layer_bias[:-1]):
             feat_list.append(self.activation_func_output((feat_list[-1]).dot(layer_weight) + layer_bia))
-        feat_list.append(feat_list[-1].dot(layer_weights[-1]) + layer_bias[-1])
+        feat_list.append(self.softMax((feat_list[-1]).dot(layer_weights[-1]) + layer_bias[-1]))
         return feat_list
     
     def backwardProp(self, layer_weights, layer_bias, act_right, label):
@@ -141,7 +143,49 @@ class NeuralNetwork:
             delta = delta_next
         return layer_weights, layer_bias
        
+    # def trainCost(self, w1, w2, blayer1, blayer2):
+    #     num = self.train_data_feats.shape[0]
+    #     zlayer1 = self.forwardProp(w1, self.train_data_feats, blayer1)
+    #     alayer1 = self.activation_func_output(zlayer1)
+    #     zlayer2 = self.forwardProp(w2, alayer1, blayer2)
+    #     alayer2 = self.softMax(zlayer2)
 
+    #     iter_shape = alayer2.shape[0]
+
+    #     for i in alayer2 :
+    #         maxValInd = np.argmax(i)
+    #         i[maxValInd] = 1
+    #         i[(maxValInd+1)%self.num_neurons_out_layer] = 0
+    #         i[(maxValInd+2)%self.num_neurons_out_layer] = 0
+
+    #     count = 0
+    #     for i in range(iter_shape):
+    #         if np.array_equal(alayer2[i], self.train_data_labels[i]):
+    #             count += 1            
+    #     count *= 100
+    #     return count/iter_shape
+
+    # def testCost(self, w1, w2, blayer1, blayer2):
+    #     num = self.test_data_feats.shape[0]
+    #     zlayer1 = self.forwardProp(w1, self.test_data_feats, blayer1)
+    #     alayer1 = self.activation_func_output(zlayer1)
+    #     zlayer2 = self.forwardProp(w2, alayer1, blayer2)
+    #     alayer2 = self.softMax(zlayer2)
+
+    #     iter_shape = alayer2.shape[0]
+
+    #     for i in alayer2 :
+    #         maxValInd = np.argmax(i)
+    #         i[maxValInd] = 1
+    #         i[(maxValInd+1)%self.num_neurons_out_layer] = 0
+    #         i[(maxValInd+2)%self.num_neurons_out_layer] = 0
+
+    #     count = 0
+    #     for i in range(iter_shape):
+    #         if np.array_equal(alayer2[i], self.test_data_labels[i]):
+    #             count += 1            
+    #     count *= 100
+    #     return count/iter_shape
     
     @staticmethod
     def curAccu(predicted, orig):
@@ -213,7 +257,7 @@ nn1 = NeuralNetwork(
         num_hidden = 1,
         num_neurons_per_layer = (32, ),
         activation_func_hidden = 'sigmoid',
-        num_neurons_out_layer=1,
+        num_neurons_out_layer=3,
         activation_func_output="softmax",
         opt_algo="SGD",
         loss_func="categorial_cross_entropy_loss",
@@ -230,8 +274,8 @@ nn2 = NeuralNetwork(
         num_hidden = 2,
         num_neurons_per_layer = (64, 32),
         activation_func_hidden = 'relu',
-        num_neurons_out_layer=1,
-        activation_func_output="relu",
+        num_neurons_out_layer=3,
+        activation_func_output="softmax",
         opt_algo="SGD",
         loss_func="categorial_cross_entropy_loss",
         learning_rate=0.01,
