@@ -6,6 +6,8 @@
 ## Dataset
 
 - `song.csv`: The dataset for the assignment.
+- `train.csv`: The training dataset.
+- `test.csv`: The test dataset.
 
 ## Source Code
 

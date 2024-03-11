@@ -6,6 +6,7 @@ Project Title: Song Popularity using Neural Networks
 """
 
 from Model import NeuralNetwork
+from My_Model import NeuralNetwork_My
 
 """
 Model 1: MLP with 1 hidden layer of 32 neurons
@@ -39,3 +40,4 @@ print("Batch Size: 32")
 print("\n")
 nn2=NeuralNetwork(num_hidden=2,num_neurons_per_layer=[64,32],activation_func_hidden='relu',num_neurons_out_layer=1,activation_func_output='linear',opt_algo='SGD',loss_func='mean_squared_error',learning_rate=0.01,num_epochs=200)
 nn2.fit()
+
