@@ -19,6 +19,7 @@ void reset_sock_info(struct SOCK_INFO *SI)
     SI->errorno = 0;
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
+    SI->to_close = 0;
 }
 
 int m_socket(int domain, int type, int protocol)
@@ -89,6 +90,7 @@ int m_socket(int domain, int type, int protocol)
     SI->errorno = 0;
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
+    SI->to_close = 0;
     Up(sem_1);
     Up(sock_info_lock);
     Down(sem_2);
@@ -180,6 +182,7 @@ int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const
     SI->errorno = 0;
     SI->IP = ((struct sockaddr_in *)src_addr)->sin_addr;
     SI->port = ((struct sockaddr_in *)src_addr)->sin_port;
+
     Up(sock_info_lock);
     Up(sem_1);
     Down(sem_2);
@@ -315,21 +318,45 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
 
 int m_close(int fd)
 {
-    key_t key_ = ftok("/usr/bin", 1);
-    int shmid = shmget(key_, N * sizeof(struct shared_memory), 0666 | IPC_CREAT);
-    struct shared_memory *SM = (struct shared_memory *)shmat(shmid, (void *)0, 0);
+    if (fd < 0)
+    {
+        errno = EBADF;
+        return -1;
+    }
+    key_t key_1 = ftok("/usr/bin", 2);
+    int shmid_1 = shmget(key_1, sizeof(struct SOCK_INFO), 0666 | IPC_CREAT);
+    struct SOCK_INFO *SI = (struct SOCK_INFO *)shmat(shmid_1, (void *)0, 0);
 
     pop.sem_num = vop.sem_num = 0;
     pop.sem_flg = vop.sem_flg = 0;
     pop.sem_op = -1;
     vop.sem_op = 1;
 
-    key_t key_table_lock = ftok("/usr/bin", 3);
-    int table_lock = semget(key_table_lock, 1, 0666 | IPC_CREAT);
+    key_t key_sem_1 = ftok("/usr/bin", 4);
+    int sem_1 = semget(key_sem_1, 1, 0666 | IPC_CREAT);
+    key_t key_sem_2 = ftok("/usr/bin", 5);
+    int sem_2 = semget(key_sem_2, 1, 0666 | IPC_CREAT);
+    key_t key_sock_info_lock = ftok("/usr/bin", 6);
+    int sock_info_lock = semget(key_sock_info_lock, 1, 0666 | IPC_CREAT);
 
-    Down(table_lock);
-    SM[fd].is_available = 1;
-    Up(table_lock);
+    Down(sock_info_lock);
+    SI->sock_id = fd;
+    SI->errorno = 0;
+    SI->to_close = 1;
+    Up(sem_1);
+    Up(sock_info_lock);
+    Down(sem_2);
+    Down(sock_info_lock);
+    int udp_fd = SI->sock_id;
+    if (udp_fd < 0)
+    {
+        errno = SI->errorno;
+        reset_sock_info(SI);
+        Up(sock_info_lock);
+        return -1;
+    }
+    reset_sock_info(SI);
+    Up(sock_info_lock);
     return 0;
 }
 

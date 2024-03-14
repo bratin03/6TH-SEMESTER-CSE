@@ -3,15 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define VERBOSE
-
-
+#define WAIT_TIME 4
 int main()
 {
-#ifdef VERBOSE
-    printf("My pid: %d\n", getpid());
-#endif
+
     int domain = AF_INET;
     int type = SOCK_MTP;
 
@@ -20,7 +18,7 @@ int main()
     if (fd == -1)
     {
         perror("m_socket");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     printf("Socket created successfully\n");
     struct sockaddr_in src_addr, dest_addr;
@@ -34,8 +32,9 @@ int main()
     if (ret == -1)
     {
         perror("m_bind");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+    printf("Bind successful from IP addr %s and port %d to IP addr %s and port %d\n", inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), inet_ntoa(dest_addr.sin_addr), ntohs(dest_addr.sin_port));
 
     char recv_buf[MSG_SIZE];
     while (1)
@@ -43,18 +42,33 @@ int main()
         ret = m_recvfrom(fd, recv_buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, (socklen_t *)&dest_addr);
         if (ret == -1)
         {
-            sleep(5);
-            continue;
-            // break;
+            if (errno == ENOMSG)
+            {
+#ifdef VERBOSE
+                printf("No data received. Sleeping for %d seconds\n", WAIT_TIME);
+#endif
+                sleep(WAIT_TIME);
+                continue;
+            }
+            else
+            {
+                perror("m_recvfrom");
+                exit(EXIT_FAILURE);
+            }
         }
         else
         {
             printf("Received: %s\n", recv_buf);
-            if(strcmp(recv_buf, "TheEnd") == 0)
-                exit(0);
+            if (strcmp(recv_buf, "TheEnd") == 0)
+            {
+                break;
+            }
         }
     }
-
-    while (1)
-        ;
+    if (m_close(fd) < 0)
+    {
+        perror("m_close");
+        exit(EXIT_SUCCESS);
+    }
+    exit(EXIT_FAILURE);
 }

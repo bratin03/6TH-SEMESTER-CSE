@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 
 #define VERBOSE
+#define WAIT_TIME 3
 
 int main()
 {
-#ifdef VERBOSE
-    printf("My pid: %d\n", getpid());
-#endif
+
     int domain = AF_INET;
     int type = SOCK_MTP;
 
@@ -19,7 +19,7 @@ int main()
     if (fd == -1)
     {
         perror("m_socket");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     printf("Socket created successfully\n");
     struct sockaddr_in src_addr, dest_addr;
@@ -33,38 +33,71 @@ int main()
     if (ret == -1)
     {
         perror("m_bind");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+    printf("Bind successful from IP addr %s and port %d to IP addr %s and port %d\n", inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), inet_ntoa(dest_addr.sin_addr), ntohs(dest_addr.sin_port));
     char buf[MSG_SIZE];
-    int count = 0;
+    int count = 1;
     while (1)
     {
-
-        sprintf(buf, "Line%02d", count);
-        // printf("Sending: %s\n", buf);
-        ret = m_sendto(fd, buf, strlen(buf), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+        sprintf(buf, "Hello %d", count);
+        ret = m_sendto(fd, buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (ret == -1)
         {
-            sleep(1);
-            continue;
+            if (errno == ENOBUFS)
+            {
+#ifdef VERBOSE
+                printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
+#endif
+                sleep(WAIT_TIME);
+                continue;
+            }
+            else
+            {
+                perror("m_sendto");
+                exit(EXIT_FAILURE);
+            }
         }
-        printf("%d accepted\n", count);
-        count++;
-        if (count > 100)
+        else
+        {
+            printf("Sent: %s\n", buf);
+            count++;
+        }
+        if (count > 25)
+        {
             break;
+        }
     }
+    char end[] = "TheEnd";
     while (1)
     {
-        sprintf(buf, "TheEnd");
-        // printf("Sending: %s\n", buf);
-        ret = m_sendto(fd, buf, strlen(buf), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+        ret = m_sendto(fd, end, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (ret == -1)
         {
-            sleep(1);
-            continue;
+            if (errno == ENOBUFS)
+            {
+#ifdef VERBOSE
+                printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
+#endif
+                sleep(WAIT_TIME);
+                continue;
+            }
+            else
+            {
+                perror("m_sendto");
+                exit(EXIT_FAILURE);
+            }
         }
-        break;
+        else
+        {
+            printf("Sent: %s\n", end);
+            break;
+        }
     }
-    while (1)
-        ;
+    if (m_close(fd) < 0)
+    {
+        perror("m_close");
+        exit(EXIT_FAILURE);
+    }
+    exit(EXIT_SUCCESS);
 }

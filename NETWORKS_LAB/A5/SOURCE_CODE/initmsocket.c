@@ -54,6 +54,7 @@ struct SOCK_INFO *SI;
 int table_lock, sem_1, sem_2, sock_info_lock;
 int sem_row[N];
 struct sembuf pop, vop;
+int m_close_requested[N] = {0};
 
 void sigchld_handler(int signo)
 {
@@ -145,22 +146,48 @@ int binary_to_decimal(char *binary, int size)
 
 void *Garbage_Collector()
 {
+    // printf("Garbage Collector Started\n");
     while (1)
     {
-        Down(table_lock);
+        // Down(table_lock);
         for (int i = 0; i < N; i++)
         {
             if (SM[i].is_available == 0)
             {
-
+                Down(sem_row[i]);
+                if (m_close_requested[i] == 1)
+                {
+                    int to_send = 0;
+                    for (int k = 0; k < SEND_BUFF_SIZE; k++)
+                    {
+                        if (SM[i].send_window.buffer_is_valid[k] == 1)
+                        {
+                            to_send = 1;
+                            break;
+                        }
+                    }
+                    if (to_send == 0)
+                    {
+                        SM[i].is_available = 1;
+                        m_close_requested[i] = 0;
+                        if (close(SM[i].src_sock) == -1)
+                        {
+                            perror("close");
+                            exit(EXIT_FAILURE);
+                        }
+                        // printf("Closed socket %d\n", i);
+                    }
+                    Up(sem_row[i]);
+                    continue;
+                }
                 if (kill(SM[i].pid, 0) == -1)
                 {
                     if (errno == ESRCH)
                     {
                         int to_send = 0;
-                        for (int i = 0; i < SEND_BUFF_SIZE; i++)
+                        for (int k = 0; k < SEND_BUFF_SIZE; k++)
                         {
-                            if (SM[i].send_window.buffer_is_valid[i] == 1)
+                            if (SM[i].send_window.buffer_is_valid[k] == 1)
                             {
                                 to_send = 1;
                                 break;
@@ -169,7 +196,16 @@ void *Garbage_Collector()
                         if (to_send == 0)
                         {
                             SM[i].is_available = 1;
-                            close(SM[i].src_sock);
+                            if (m_close_requested[i] == 1)
+                            {
+                                m_close_requested[i] = 0;
+                            }
+                            if (close(SM[i].src_sock) == -1)
+                            {
+                                perror("close");
+                                exit(EXIT_FAILURE);
+                            }
+                            // printf("Closed socket %d\n", i);
                         }
                     }
                     else
@@ -178,6 +214,7 @@ void *Garbage_Collector()
                         exit(EXIT_FAILURE);
                     }
                 }
+                Up(sem_row[i]);
             }
         }
 #ifdef DEBUG
@@ -196,8 +233,8 @@ void *Garbage_Collector()
         }
         reset();
 #endif
-        Up(table_lock);
-        sleep(5 * T);
+        // Up(table_lock);
+        sleep(2 * T);
     }
 }
 
@@ -572,11 +609,12 @@ int main()
     pop.sem_op = -1;
     vop.sem_op = 1;
 
+    // printf("BP: 1\n");
     key_t key_;
     key_ = ftok("/usr/bin", 1);
     shmid = shmget(key_, N * sizeof(struct shared_memory), 0666 | IPC_CREAT);
     SM = (struct shared_memory *)shmat(shmid, (void *)0, 0);
-
+    // printf("BP: 2\n");
     key_t key_1 = ftok("/usr/bin", 2);
     shmid_1 = shmget(key_1, sizeof(struct SOCK_INFO), 0666 | IPC_CREAT);
     SI = (struct SOCK_INFO *)shmat(shmid_1, (void *)0, 0);
@@ -584,29 +622,31 @@ int main()
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
     SI->sock_id = 0;
-
+    SI->to_close = 0;
+    // printf("BP: 3\n");
     key_t key_table_lock = ftok("/usr/bin", 3);
     table_lock = semget(key_table_lock, 1, 0666 | IPC_CREAT);
     semctl(table_lock, 0, SETVAL, 1);
-
+    // printf("BP: 4\n");
     key_t key_sem_1 = ftok("/usr/bin", 4);
     sem_1 = semget(key_sem_1, 1, 0666 | IPC_CREAT);
     semctl(sem_1, 0, SETVAL, 0);
-
+    // printf("BP: 5\n");
     key_t key_sem_2 = ftok("/usr/bin", 5);
     sem_2 = semget(key_sem_2, 1, 0666 | IPC_CREAT);
     semctl(sem_2, 0, SETVAL, 0);
-
+    // printf("BP: 6\n");
     key_t key_sock_info_lock = ftok("/usr/bin", 6);
     sock_info_lock = semget(key_sock_info_lock, 1, 0666 | IPC_CREAT);
     semctl(sock_info_lock, 0, SETVAL, 1);
-
+    // printf("BP: 7\n");
     for (int i = 0; i < N; i++)
     {
         key_t key_sem_row = ftok("/usr/bin", 7 + i);
         sem_row[i] = semget(key_sem_row, 1, 0666 | IPC_CREAT);
         semctl(sem_row[i], 0, SETVAL, 1);
     }
+    // printf("BP: 8\n");
 
     Down(table_lock);
     for (int i = 0; i < N; i++)
@@ -614,8 +654,10 @@ int main()
         SM[i].is_available = 1;
     }
     Up(table_lock);
+    // printf("BP: 9\n");
     // pthread_mutex_unlock(&table_lock);
     pthread_t G, R, S;
+
     pthread_create(&G, NULL, Garbage_Collector, NULL);
     pthread_create(&R, NULL, R_Thread, NULL);
     pthread_create(&S, NULL, S_Thread, NULL);
@@ -629,7 +671,62 @@ int main()
 
         Down(sock_info_lock);
         // pthread_mutex_lock(&sock_info_lock);
-        if (SI->port == 0 && SI->sock_id == 0)
+        if (SI->to_close == 1)
+        {
+            int index = SI->sock_id;
+            if (SM[index].is_available == 1)
+            {
+                SI->errorno = EBADF;
+                SI->sock_id = -1;
+                Up(sem_2);
+                Up(sock_info_lock);
+                continue;
+            }
+            if (m_close_requested[index] == 1)
+            {
+                SI->errorno = EBADF;
+                SI->sock_id = -1;
+                Up(sem_2);
+                Up(sock_info_lock);
+                continue;
+            }
+
+            Down(table_lock);
+            int to_send = 0;
+            for (int i = 0; i < SEND_BUFF_SIZE; i++)
+            {
+                if (SM[index].send_window.buffer_is_valid[i] != 0)
+                {
+                    to_send = 1;
+                    break;
+                }
+            }
+            if (to_send == 0)
+            {
+                SM[index].is_available = 1;
+                int ret = close(SM[index].src_sock);
+                if (ret == -1)
+                {
+                    SI->errorno = errno;
+                    SI->sock_id = -1;
+                    Up(sem_2);
+                    Up(sock_info_lock);
+                    continue;
+                }
+                // printf("Closed socket %d\n", index);
+            }
+            else
+            {
+                m_close_requested[index] = 1;
+            }
+            Up(table_lock);
+            SI->errorno = 0;
+            SI->sock_id = 0;
+            Up(sem_2);
+            Up(sock_info_lock);
+            continue;
+        }
+        else if (SI->port == 0 && SI->sock_id == 0)
         {
             int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
             // printf("UDP FD: %d\n", udp_fd);

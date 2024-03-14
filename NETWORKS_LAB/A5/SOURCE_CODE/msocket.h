@@ -10,7 +10,7 @@
 #define RECV_BUFF_SIZE 5
 #define SEND_BUFF_SIZE 10
 #define MAX_SEQ_NUM 16
-#define MSG_SIZE 7
+#define MSG_SIZE 9
 #define N 25
 #define SOCK_MTP 689
 #define P 0.2
@@ -63,6 +63,6 @@ int m_socket(int domain, int type, int protocol);
 int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1);
 int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
 int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
-int mclose(int sockfd);
+int m_close(int sockfd);
 int dropMessage(float p);
 #endif
