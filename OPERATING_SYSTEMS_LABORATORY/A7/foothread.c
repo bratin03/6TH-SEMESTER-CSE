@@ -57,6 +57,7 @@ void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_r
         thread_table_sem = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
         if (thread_table_sem == -1)
         {
+            errno = ENOMEM;
             return;
         }
         pop.sem_num = 0;
@@ -72,6 +73,8 @@ void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_r
     pid_t tid = clone(start_routine, stack + stack_size, CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM | CLONE_DETACHED, arg);
     if (tid == -1)
     {
+        free(stack);
+        errno = ENOMEM;
         Up(thread_table_sem);
         return;
     }
@@ -82,6 +85,8 @@ void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_r
         foothread_table[count].semaphore_id = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
         if (foothread_table[count].semaphore_id == -1)
         {
+            free(stack);
+            errno = ENOMEM;
             Up(thread_table_sem);
             return;
         }
@@ -91,6 +96,8 @@ void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_r
     if (thread != NULL)
     {
         thread->tid = tid;
+        thread->join_type = join_type;
+        thread->stack_size = stack_size;
     }
     count++;
     Up(thread_table_sem);

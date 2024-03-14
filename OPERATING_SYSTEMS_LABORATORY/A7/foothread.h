@@ -27,6 +27,8 @@
 typedef struct foothread_t
 {
     pid_t tid;
+    int join_type;
+    int stack_size;
 } foothread_t;
 
 typedef struct foothread_attr_t
