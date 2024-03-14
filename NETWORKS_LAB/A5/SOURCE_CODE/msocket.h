@@ -56,6 +56,7 @@ struct SOCK_INFO
     struct in_addr IP;
     int port;
     int errorno;
+    int to_close;
 };
 
 int m_socket(int domain, int type, int protocol);

@@ -11,9 +11,9 @@
 #include <pthread.h>
 #include <signal.h>
 #include <errno.h>
+#include <math.h>
 
-#define VERBOSE
-
+#ifdef DEBUG
 void red()
 {
     printf("\033[1;31m");
@@ -38,6 +38,12 @@ void reset()
 {
     printf("\033[0m");
 }
+
+void magenta()
+{
+    printf("\033[1;35m");
+}
+#endif
 
 #define Down(s) semop(s, &pop, 1)
 #define Up(s) semop(s, &vop, 1)
@@ -72,23 +78,54 @@ void sigchld_handler(int signo)
 
 void decimal_to_binary(int decimal, char *buffer)
 {
-    // Mask to extract each bit
     int mask = 1 << 3;
 
     for (int i = 0; i < 4; i++)
     {
-        // Extract the ith bit
+
         int bit = (decimal & mask) ? 1 : 0;
 
-        // Convert the bit to character '0' or '1' and store it in the buffer
         buffer[i] = bit + '0';
 
-        // Shift the mask to the right for the next bit
         mask >>= 1;
     }
 
-    // Null-terminate the buffer
     buffer[4] = '\0';
+}
+
+void send_ack(int sock, struct in_addr dest_ip, int dest_port, int seq_num, int window_size)
+{
+    char ack[MSG_SIZE + 9];
+    ack[0] = '1';
+    decimal_to_binary(seq_num, ack + 1);
+    decimal_to_binary(window_size, ack + 5);
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = dest_port;
+    dest_addr.sin_addr = dest_ip;
+    int ret = sendto(sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (ret == -1)
+    {
+        perror("sendto");
+        exit(EXIT_FAILURE);
+    }
+}
+void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char *msg)
+{
+    char send_msg[MSG_SIZE + 5];
+    send_msg[0] = '0';
+    decimal_to_binary(seq_num, send_msg + 1);
+    strcat(send_msg + 5, msg);
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = dest_port;
+    dest_addr.sin_addr = dest_ip;
+    int ret = sendto(sock, send_msg, MSG_SIZE + 5, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (ret == -1)
+    {
+        perror("sendto");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int binary_to_decimal(char *binary, int size)
@@ -111,19 +148,39 @@ void *Garbage_Collector()
     while (1)
     {
         Down(table_lock);
-// for (int i = 0; i < N; i++)
-// {
-//     if (SM[i].is_available == 0)
-//     {
+        for (int i = 0; i < N; i++)
+        {
+            if (SM[i].is_available == 0)
+            {
 
-//         if (kill(SM[i].pid, 0) == -1)
-//         {
-//             close(SM[i].src_sock);
-//             SM[i].is_available = 1;
-//         }
-//     }
-// }
-#ifdef VERBOSE
+                if (kill(SM[i].pid, 0) == -1)
+                {
+                    if (errno == ESRCH)
+                    {
+                        int to_send = 0;
+                        for (int i = 0; i < SEND_BUFF_SIZE; i++)
+                        {
+                            if (SM[i].send_window.buffer_is_valid[i] == 1)
+                            {
+                                to_send = 1;
+                                break;
+                            }
+                        }
+                        if (to_send == 0)
+                        {
+                            SM[i].is_available = 1;
+                            close(SM[i].src_sock);
+                        }
+                    }
+                    else
+                    {
+                        perror("kill");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
+        }
+#ifdef DEBUG
         pink();
         for (int i = 0; i <= 0; i++)
         {
@@ -140,7 +197,7 @@ void *Garbage_Collector()
         reset();
 #endif
         Up(table_lock);
-        sleep(T / 5);
+        sleep(5 * T);
     }
 }
 
@@ -174,7 +231,7 @@ void *R_Thread()
         if (ret == -1)
         {
             perror("select");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         if (ret == 0)
         {
@@ -182,9 +239,6 @@ void *R_Thread()
             {
                 if (prev_empty[i] == 1 && SM[i].is_available == 0 && SM[i].receive_window.nospace == 0)
                 {
-                    prev_empty[i] = 0;
-                    char ack[MSG_SIZE + 9];
-                    ack[0] = '1';
 
                     Down(sem_row[i]);
                     int current_window_size = 0;
@@ -198,34 +252,23 @@ void *R_Thread()
                         current_window_size++;
                     }
                     SM[i].receive_window.window_size = current_window_size;
-                    orange();
-                    for (int j = 0; j < current_window_size; j++)
+
+                    for (int j = 0; j < RECV_BUFF_SIZE; j++)
                     {
 
                         SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + (j + 1)) % RECV_BUFF_SIZE;
+#ifdef DEBUG
+                        magenta();
                         printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
+                        reset();
+#endif
                     }
-                    reset();
-
-                    decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
-                    decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
-                    struct sockaddr_in dest_addr;
-                    dest_addr.sin_family = AF_INET;
-                    dest_addr.sin_port = SM[i].dest_port;
-                    dest_addr.sin_addr = SM[i].dest_ip;
-                    int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                    if (ret == -1)
-                    {
-                        perror("sendto");
-                        Up(sem_row[i]);
-                        exit(1);
-                    }
+                    send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
+#ifdef DEBUG
                     green();
-                    printf("Sending Ack indicatating space available %s\n", ack);
+                    printf("Sending Ack indicatating space available");
                     reset();
-                    green();
-                    printf("Sent Ack: %s\n", ack);
-                    reset();
+#endif
                     Up(sem_row[i]);
                 }
             }
@@ -239,18 +282,24 @@ void *R_Thread()
 
                 if (FD_ISSET(SM[i].src_sock, &readfds))
                 {
+#ifdef DEBUG
                     green();
                     printf("Received data on %d\n", i);
+                    reset();
+#endif
                     struct sockaddr_in src_addr;
                     socklen_t src_addr_len = sizeof(src_addr);
                     char RECVMSG[MSG_SIZE + 5];
                     int ret = recvfrom(SM[i].src_sock, RECVMSG, MSG_SIZE + 5, 0, (struct sockaddr *)&src_addr, &src_addr_len);
+#ifdef DEBUG
+                    green();
                     printf("Received: %s\n", RECVMSG);
                     reset();
+#endif
                     if (ret == -1)
                     {
                         perror("recvfrom");
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                     char id_bit = RECVMSG[0];
                     if (id_bit == '0')
@@ -263,16 +312,20 @@ void *R_Thread()
                         int last_inorder_packet = SM[i].receive_window.last_inorder_packet;
                         int window_size = SM[i].receive_window.window_size;
                         int next_to_deliver = (last_inorder_packet + 1) % MAX_SEQ_NUM;
+#ifdef DEBUG
                         green();
                         printf("seq_num_int: %d last_inorder_packet: %d window_size: %d next_to_deliver: %d\n", seq_num_int, last_inorder_packet, window_size, next_to_deliver);
                         reset();
+#endif
                         if (((seq_num_int - last_inorder_packet + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
 
                             int buffer_index = SM[i].receive_window.seq_buf_index_map[seq_num_int];
+#ifdef DEBUG
                             green();
                             printf("Buffer Index: %d\n", buffer_index);
                             reset();
+#endif
                             if (SM[i].receive_window.buffer_is_valid[buffer_index] == 0)
                             {
                                 strcpy(SM[i].recv_buff[buffer_index], RECVMSG + 5);
@@ -284,30 +337,42 @@ void *R_Thread()
                                 int next_index = (last_inorder_packet + 1) % MAX_SEQ_NUM;
                                 while (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]] == 1 && (((next_index - last_inorder_packet + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size))
                                 {
+#ifdef DEBUG
                                     green();
                                     printf("Next Index: %d\n", next_index);
                                     printf("SM[i].receive_window.seq_buf_index_map[next_index]: %d\n", SM[i].receive_window.seq_buf_index_map[next_index]);
                                     printf("SM[i].recv_buff.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]]: %d\n", SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]]);
                                     reset();
+#endif
                                     SM[i].receive_window.last_inorder_packet = next_index;
                                     next_index = (next_index + 1) % MAX_SEQ_NUM;
                                 }
                                 last_inorder_packet = SM[i].receive_window.last_inorder_packet;
                                 int new_window_size = 0;
-                                for (int j = 0; j < window_size; j++)
+                                for (int j = 0; j < window_size - 1; j++)
                                 {
-                                    if (SM[i].receive_window.buffer_is_valid[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] == 1)
+                                    if (SM[i].receive_window.buffer_is_valid[(SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM])] == 1)
                                     {
+#ifdef DEBUG
+                                        printf("Buffer is valid at seq no %d and buffer index %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
+                                        for (int k = 0; k < RECV_BUFF_SIZE; k++)
+                                        {
+                                            printf("SM[i].recv_buff[%d] = %s SM[i].receive_window.buffer_is_valid[%d] = %d\n", k, SM[i].recv_buff[k], k, SM[i].receive_window.buffer_is_valid[k]);
+                                        }
+#endif
+
                                         break;
                                     }
                                     new_window_size++;
                                 }
-                                for (int j = 0; j < new_window_size; j++)
+                                for (int j = 0; j < RECV_BUFF_SIZE; j++)
                                 {
                                     SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + (j + 1)) % RECV_BUFF_SIZE;
+#ifdef DEBUG
                                     orange();
                                     printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
                                     reset();
+#endif
                                 }
                                 SM[i].receive_window.window_size = new_window_size;
                                 if (new_window_size == 0)
@@ -316,50 +381,56 @@ void *R_Thread()
                                     prev_empty[i] = 1;
                                 }
                             }
+#ifdef DEBUG
                             green();
                             printf("\nLast Inorder Packet: %d\n\n", SM[i].receive_window.last_inorder_packet);
                             reset();
-                            char ack[MSG_SIZE + 9];
-                            ack[0] = '1';
-                            decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
-                            decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
-                            struct sockaddr_in dest_addr;
-                            dest_addr.sin_family = AF_INET;
-                            dest_addr.sin_port = SM[i].dest_port;
-                            dest_addr.sin_addr = SM[i].dest_ip;
-                            green();
-                            printf("Sending Normal Ack: %s\n", ack);
-                            reset();
-                            int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                            if (ret == -1)
-                            {
-                                perror("sendto");
-                                Up(sem_row[i]);
-                                exit(1);
-                            }
+#endif
+                            // char ack[MSG_SIZE + 9];
+                            // ack[0] = '1';
+                            // decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
+                            // decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
+                            // struct sockaddr_in dest_addr;
+                            // dest_addr.sin_family = AF_INET;
+                            // dest_addr.sin_port = SM[i].dest_port;
+                            // dest_addr.sin_addr = SM[i].dest_ip;
+                            // green();
+                            // printf("Sending Normal Ack: %s\n", ack);
+                            // reset();
+                            // int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+                            // if (ret == -1)
+                            // {
+                            //     perror("sendto");
+                            //     Up(sem_row[i]);
+                            //     exit(1);
+                            // }
+                            send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
                             Up(sem_row[i]);
                         }
                         else if (SM[i].receive_window.nospace == 1)
                         {
-                            char ack[MSG_SIZE + 9];
-                            ack[0] = '1';
-                            // Down(table_lock);
-                            decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
-                            decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
-                            struct sockaddr_in dest_addr;
-                            dest_addr.sin_family = AF_INET;
-                            dest_addr.sin_port = SM[i].dest_port;
-                            dest_addr.sin_addr = SM[i].dest_ip;
-                            int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                            if (ret == -1)
-                            {
-                                perror("sendto");
-                                Up(sem_row[i]);
-                                exit(1);
-                            }
+                            // char ack[MSG_SIZE + 9];
+                            // ack[0] = '1';
+                            // // Down(table_lock);
+                            // decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
+                            // decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
+                            // struct sockaddr_in dest_addr;
+                            // dest_addr.sin_family = AF_INET;
+                            // dest_addr.sin_port = SM[i].dest_port;
+                            // dest_addr.sin_addr = SM[i].dest_ip;
+                            // int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+                            // if (ret == -1)
+                            // {
+                            //     perror("sendto");
+                            //     Up(sem_row[i]);
+                            //     exit(1);
+                            // }
+                            send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
+#ifdef DEBUG
                             green();
                             printf("Sending Ack indicating no space: %s\n", ack);
                             reset();
+#endif
                             Up(sem_row[i]);
                         }
                     }
@@ -377,10 +448,12 @@ void *R_Thread()
                         Down(sem_row[i]);
                         int last_seq_ack = SM[i].send_window.last_seq_ack;
                         int window_size = SM[i].send_window.window_size;
-                        int next_to_send = (last_seq_ack + 1) % MAX_SEQ_NUM;
+
+#ifdef DEBUG
                         green();
                         printf("Ack Num: %d Last Seq Ack: %d Window Size: %d Next to Send: %d New Window Size: %d\n", ack_num, last_seq_ack, window_size, next_to_send, new_window_size);
                         reset();
+#endif
                         if (((ack_num - last_seq_ack + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
                             if (ack_num == last_seq_ack)
@@ -408,7 +481,7 @@ void *R_Thread()
 
 void *S_Thread()
 {
-    int sleep_time = T / 2 - (1 - T % 2);
+    int sleep_time = floor(T / 2);
     while (1)
     {
         for (int i = 0; i < N; i++)
@@ -417,20 +490,24 @@ void *S_Thread()
             {
                 Down(table_lock);
                 int next_to_send = (SM[i].send_window.last_seq_ack + 1) % MAX_SEQ_NUM;
+#ifdef DEBUG
                 if (i == 1)
                 {
                     red();
                     printf("Next to send: %d\n", next_to_send);
                     reset();
                 }
+#endif
                 int next_to_send_index = SM[i].send_window.seq_buf_index_map[next_to_send];
                 int window_size = SM[i].send_window.window_size;
+#ifdef DEBUG
                 if (i == 1)
                 {
                     red();
                     printf("Next to send index: %d Window Size: %d\n", next_to_send_index, window_size);
                     reset();
                 }
+#endif
                 for (int j = 0; j < window_size; j++)
                 {
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 0)
@@ -441,10 +518,12 @@ void *S_Thread()
                     {
                         if ((time(NULL) - SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]) > T)
                         {
+#ifdef DEBUG
                             orange();
                             printf("Time Now: %ld, Time Last Sent: %ld\n", time(NULL), SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]);
                             printf("Timeout difference: %ld\n", time(NULL) - SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]);
                             reset();
+#endif
                             SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM] = time(NULL);
                         }
                         else
@@ -457,24 +536,27 @@ void *S_Thread()
                         SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM] = time(NULL);
                     }
                     SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] = 2;
-                    struct sockaddr_in dest_addr;
-                    dest_addr.sin_family = AF_INET;
-                    dest_addr.sin_port = SM[i].dest_port;
-                    dest_addr.sin_addr = SM[i].dest_ip;
-                    char SENDMSG[MSG_SIZE + 5];
-                    SENDMSG[0] = '0';
-                    decimal_to_binary((next_to_send + j) % MAX_SEQ_NUM, SENDMSG + 1);
-                    strcat(SENDMSG + 5, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
-                    int ret = sendto(SM[i].src_sock, SENDMSG, MSG_SIZE + 5, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                    if (ret == -1)
-                    {
-                        perror("sendto");
-                        Up(table_lock);
-                        exit(1);
-                    }
+                    // struct sockaddr_in dest_addr;
+                    // dest_addr.sin_family = AF_INET;
+                    // dest_addr.sin_port = SM[i].dest_port;
+                    // dest_addr.sin_addr = SM[i].dest_ip;
+                    // char msg[MSG_SIZE + 5];
+                    // msg[0] = '0';
+                    // decimal_to_binary((next_to_send + j) % MAX_SEQ_NUM, msg + 1);
+                    // strcat(msg + 5, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
+                    // int ret = sendto(SM[i].src_sock, msg, MSG_SIZE + 5, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+                    // if (ret == -1)
+                    // {
+                    //     perror("sendto");
+                    //     Up(table_lock);
+                    //     exit(1);
+                    // }
+                    send_msg(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, (next_to_send + j) % MAX_SEQ_NUM, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
+#ifdef DEBUG
                     red();
-                    printf("Sent: %s\n", SENDMSG);
+                    printf("Sent: %s\n", msg);
                     reset();
+#endif
                 }
                 Up(table_lock);
             }
@@ -555,7 +637,7 @@ int main()
             {
                 SI->errorno = errno;
                 SI->sock_id = -1;
-                // #ifdef VERBOSE
+                // #ifdef DEBUG
                 //                 printf("Signal sent\n");
                 // #endif
                 Up(sem_2);
@@ -565,7 +647,7 @@ int main()
                 continue;
             }
             SI->sock_id = udp_fd;
-            // #ifdef VERBOSE
+            // #ifdef DEBUG
             //             printf("Signal sent\n");
             // #endif
             Up(sem_2);

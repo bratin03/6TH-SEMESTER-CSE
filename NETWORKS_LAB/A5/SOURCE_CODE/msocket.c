@@ -294,9 +294,11 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     strcpy((char *)buf, SM[sockfd].recv_buff[next_buf_index]);
     SM[sockfd].receive_window.buffer_is_valid[next_buf_index] = 0;
     SM[sockfd].receive_window.to_deliver = (SM[sockfd].receive_window.to_deliver + 1) % RECV_BUFF_SIZE;
-    for (int i = 0; i < SM[sockfd].send_window.window_size; i++)
+    for (int j = 0; j < RECV_BUFF_SIZE; j++)
     {
-        SM[sockfd].send_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet + i + 1] = (SM[sockfd].receive_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet] + i + 1) % RECV_BUFF_SIZE;
+
+        SM[sockfd].receive_window.seq_buf_index_map[(SM[sockfd].receive_window.last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[sockfd].receive_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet] + j + 1) % RECV_BUFF_SIZE;
+        // printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
     }
     if (SM[sockfd].receive_window.nospace == 1)
     {
