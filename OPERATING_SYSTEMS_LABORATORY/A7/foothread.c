@@ -1,3 +1,12 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
 #define _GNU_SOURCE
 #include "foothread.h"
 #include <sys/types.h>
@@ -20,29 +29,9 @@ typedef struct foothread_table_entry
     int is_exit;
 } foothread_table_entry;
 
-typedef struct foothread_mutex_entry
-{
-    int sem;
-    int is_locked;
-    pid_t owner;
-} foothread_mutex_entry;
-
-typedef struct foothread_barrier_entry
-{
-    int sem_mutex;
-    int sem_1;
-    int sem_2;
-    int count;
-    int current_count;
-} foothread_barrier_entry;
-
 static foothread_table_entry foothread_table[FOOTHREAD_THREADS_MAX];
-static foothread_mutex_entry foothread_mutex_table[FOOTHREAD_THREADS_MAX];
-static foothread_barrier_entry foothread_barrier_table[FOOTHREAD_THREADS_MAX];
 static int count = 0;
-static int mutex_count = 0;
-static int barrier_count = 0;
-static int thread_table_sem, mutex_table_sem, barrier_table_sem;
+static int thread_table_sem;
 
 void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_routine)(void *), void *arg)
 {
@@ -153,145 +142,110 @@ void foothread_attr_setstacksize(foothread_attr_t *attr, int stack_size)
 
 void foothread_mutex_init(foothread_mutex_t *mutex)
 {
-    if (mutex_count == 0)
+    mutex->sem = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    if (mutex->sem == -1)
     {
-        mutex_table_sem = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-        if (mutex_table_sem == -1)
-        {
-            return;
-        }
-        pop.sem_num = 0;
-        pop.sem_op = -1;
-        pop.sem_flg = 0;
-        vop.sem_num = 0;
-        vop.sem_op = 1;
-        vop.sem_flg = 0;
-        semctl(mutex_table_sem, 0, SETVAL, 1);
-    }
-    Down(mutex_table_sem);
-    mutex->sem = mutex_count;
-    foothread_mutex_table[mutex_count].sem = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-    if (foothread_mutex_table[mutex_count].sem == -1)
-    {
-        Up(mutex_table_sem);
+        errno = ENOMEM;
         return;
     }
-    semctl(foothread_mutex_table[mutex_count].sem, 0, SETVAL, 1);
-    foothread_mutex_table[mutex_count].is_locked = 0;
-    foothread_mutex_table[mutex_count].owner = 0;
-    mutex_count++;
-    Up(mutex_table_sem);
+    semctl(mutex->sem, 0, SETVAL, 1);
+    mutex->is_locked = 0;
+    mutex->owner = 0;
 }
 
 void foothread_mutex_lock(foothread_mutex_t *mutex)
 {
-
-    Down(foothread_mutex_table[mutex->sem].sem);
-    foothread_mutex_table[mutex->sem].is_locked = 1;
-    foothread_mutex_table[mutex->sem].owner = gettid();
+    if (mutex->is_locked == 1 && mutex->owner == gettid())
+    {
+        errno = EDEADLK;
+        return;
+    }
+    Down(mutex->sem);
+    mutex->is_locked = 1;
+    mutex->owner = gettid();
 }
 
 void foothread_mutex_unlock(foothread_mutex_t *mutex)
 {
-    if (foothread_mutex_table[mutex->sem].is_locked == 0 || foothread_mutex_table[mutex->sem].owner != gettid())
+    if (mutex->is_locked == 0 || mutex->owner != gettid())
     {
         errno = EPERM;
         return;
     }
-    foothread_mutex_table[mutex->sem].is_locked = 0;
-    foothread_mutex_table[mutex->sem].owner = 0;
-    Up(foothread_mutex_table[mutex->sem].sem);
+    mutex->is_locked = 0;
+    mutex->owner = 0;
+    Up(mutex->sem);
 }
 
 void foothread_mutex_destroy(foothread_mutex_t *mutex)
 {
-    semctl(foothread_mutex_table[mutex->sem].sem, 0, IPC_RMID);
-    foothread_mutex_table[mutex->sem].is_locked = 0;
-    foothread_mutex_table[mutex->sem].owner = 0;
-    foothread_mutex_table[mutex->sem].sem = -1;
+    semctl(mutex->sem, 0, IPC_RMID);
+    mutex->is_locked = 0;
+    mutex->owner = 0;
     mutex->sem = -1;
 }
 
 void foothread_barrier_init(foothread_barrier_t *barrier, int count)
 {
-    if (barrier_count == 0)
+    barrier->sem_mutex = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    if (barrier->sem_mutex == -1)
     {
-        barrier_table_sem = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-        if (barrier_table_sem == -1)
-        {
-            return;
-        }
-        pop.sem_num = 0;
-        pop.sem_op = -1;
-        pop.sem_flg = 0;
-        vop.sem_num = 0;
-        vop.sem_op = 1;
-        vop.sem_flg = 0;
-        semctl(barrier_table_sem, 0, SETVAL, 1);
-    }
-    Down(barrier_table_sem);
-    barrier->sem = barrier_count;
-    foothread_barrier_table[barrier_count].sem_mutex = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-    if (foothread_barrier_table[barrier_count].sem_mutex == -1)
-    {
-        Up(barrier_table_sem);
+        errno = ENOMEM;
         return;
     }
-    semctl(foothread_barrier_table[barrier_count].sem_mutex, 0, SETVAL, 1);
-    foothread_barrier_table[barrier_count].sem_1 = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-    if (foothread_barrier_table[barrier_count].sem_1 == -1)
+    semctl(barrier->sem_mutex, 0, SETVAL, 1);
+    barrier->sem_1 = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    if (barrier->sem_1 == -1)
     {
-        Up(barrier_table_sem);
+        errno = ENOMEM;
         return;
     }
-    semctl(foothread_barrier_table[barrier_count].sem_1, 0, SETVAL, 0);
-    foothread_barrier_table[barrier_count].sem_2 = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-    if (foothread_barrier_table[barrier_count].sem_2 == -1)
+    semctl(barrier->sem_1, 0, SETVAL, 0);
+    barrier->sem_2 = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    if (barrier->sem_2 == -1)
     {
-        Up(barrier_table_sem);
+        errno = ENOMEM;
         return;
     }
-    semctl(foothread_barrier_table[barrier_count].sem_2, 0, SETVAL, 1);
-    foothread_barrier_table[barrier_count].count = count;
-    foothread_barrier_table[barrier_count].current_count = 0;
-    barrier_count++;
-    Up(barrier_table_sem);
+    semctl(barrier->sem_2, 0, SETVAL, 1);
+    barrier->count = count;
+    barrier->current_count = 0;
 }
 
 void foothread_barrier_wait(foothread_barrier_t *barrier)
 {
-    Down(foothread_barrier_table[barrier->sem].sem_mutex);
-    foothread_barrier_table[barrier->sem].current_count++;
-    if (foothread_barrier_table[barrier->sem].current_count == foothread_barrier_table[barrier->sem].count)
+    Down(barrier->sem_mutex);
+    barrier->current_count++;
+    if (barrier->current_count == barrier->count)
     {
-        Down(foothread_barrier_table[barrier->sem].sem_2);
-        Up(foothread_barrier_table[barrier->sem].sem_1);
+        Down(barrier->sem_2);
+        Up(barrier->sem_1);
     }
-    Up(foothread_barrier_table[barrier->sem].sem_mutex);
+    Up(barrier->sem_mutex);
 
-    Down(foothread_barrier_table[barrier->sem].sem_1);
-    Up(foothread_barrier_table[barrier->sem].sem_1);
+    Down(barrier->sem_1);
+    Up(barrier->sem_1);
 
-    Down(foothread_barrier_table[barrier->sem].sem_mutex);
-    foothread_barrier_table[barrier->sem].current_count--;
-    if (foothread_barrier_table[barrier->sem].current_count == 0)
+    Down(barrier->sem_mutex);
+    barrier->current_count--;
+    if (barrier->current_count == 0)
     {
-        Down(foothread_barrier_table[barrier->sem].sem_1);
-        Up(foothread_barrier_table[barrier->sem].sem_2);
+        Down(barrier->sem_1);
+        Up(barrier->sem_2);
     }
-    Up(foothread_barrier_table[barrier->sem].sem_mutex);
+    Up(barrier->sem_mutex);
 
-    Down(foothread_barrier_table[barrier->sem].sem_2);
-    Up(foothread_barrier_table[barrier->sem].sem_2);
+    Down(barrier->sem_2);
+    Up(barrier->sem_2);
 }
 
 void foothread_barrier_destroy(foothread_barrier_t *barrier)
 {
-    semctl(foothread_barrier_table[barrier->sem].sem_mutex, 0, IPC_RMID);
-    semctl(foothread_barrier_table[barrier->sem].sem_1, 0, IPC_RMID);
-    semctl(foothread_barrier_table[barrier->sem].sem_2, 0, IPC_RMID);
-    foothread_barrier_table[barrier->sem].sem_mutex = -1;
-    foothread_barrier_table[barrier->sem].sem_1 = -1;
-    foothread_barrier_table[barrier->sem].sem_2 = -1;
-    barrier->sem = -1;    
+
+    semctl(barrier->sem_mutex, 0, IPC_RMID);
+    semctl(barrier->sem_1, 0, IPC_RMID);
+    semctl(barrier->sem_2, 0, IPC_RMID);
+    barrier->sem_mutex = -1;
+    barrier->sem_1 = -1;
+    barrier->sem_2 = -1;
 }

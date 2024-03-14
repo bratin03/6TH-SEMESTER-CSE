@@ -1,3 +1,13 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #ifndef __FOOTHREAD_H__
 #define __FOOTHREAD_H__
 
@@ -28,11 +38,17 @@ typedef struct foothread_attr_t
 typedef struct foothread_mutex_t
 {
     int sem;
+    int is_locked;
+    pid_t owner;
 } foothread_mutex_t;
 
 typedef struct foothread_barrier_t
 {
-    int sem;
+    int sem_mutex;
+    int sem_1;
+    int sem_2;
+    int count;
+    int current_count;
 } foothread_barrier_t;
 
 void foothread_create(foothread_t *thread, foothread_attr_t *attr, int (*start_routine)(void *), void *arg);
