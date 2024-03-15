@@ -151,6 +151,7 @@ void send_ack(int sock, struct in_addr dest_ip, int dest_port, int seq_num, int 
     reset();
 #endif
 }
+
 void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char *msg)
 {
     char send_msg[MSG_SIZE + 5];
