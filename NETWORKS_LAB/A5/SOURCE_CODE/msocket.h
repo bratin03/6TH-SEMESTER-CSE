@@ -23,7 +23,7 @@
 #define RECV_BUFF_SIZE 5
 #define SEND_BUFF_SIZE 10
 #define MAX_SEQ_NUM 16
-#define MSG_SIZE 1024
+#define MSG_SIZE 15
 #define N 25
 #define SOCK_MTP 689
 #define P 0.2

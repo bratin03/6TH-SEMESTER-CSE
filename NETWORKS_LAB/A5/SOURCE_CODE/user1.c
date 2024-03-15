@@ -28,15 +28,15 @@ Also reduce the MSG_SIZE to smaller value (15) fr better I/O during testing with
 #include <unistd.h>
 
 // #define VERBOSE
-// #define DRANDOM
+#define DRANDOM
 #define WAIT_TIME 4
 #define INPUT_FILE "input.txt"
 
 #ifdef DRANDOM
 int generate_message_of_length(char *buf, int len, int seq_num)
 {
-    sprintf(buf, "%2d", seq_num);
-    for (int i = 2; i < len - 2; i++)
+    sprintf(buf, "%4d", seq_num);
+    for (int i = 4; i < len - 2; i++)
     {
         buf[i] = '-';
     }
@@ -103,7 +103,7 @@ int main()
             printf("Sent: %s\n", buf);
             count++;
         }
-        if (count > 22)
+        if (count > 1000)
         {
             break;
         }
