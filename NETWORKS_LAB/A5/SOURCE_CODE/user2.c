@@ -1,3 +1,20 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
+/*
+User 2 sends messages to User 1. It sends 25 messages and then sends "TheEnd" message to indicate the end of the communication. 
+*/
+
 #include "msocket.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +24,18 @@
 
 #define VERBOSE
 #define WAIT_TIME 3
+
+int generate_message_of_length(char *buf, int len, int seq_num)
+{
+    sprintf(buf, "%2d", seq_num);
+    for (int i = 2; i < len - 2; i++)
+    {
+        buf[i] = '-';
+    }
+    buf[len - 2] = '\n';
+    buf[len - 1] = '\0';
+    return 0;
+}
 
 int main()
 {
@@ -40,7 +69,7 @@ int main()
     int count = 1;
     while (1)
     {
-        sprintf(buf, "Hello %d", count);
+        generate_message_of_length(buf, MSG_SIZE, count);
         ret = m_sendto(fd, buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (ret == -1)
         {

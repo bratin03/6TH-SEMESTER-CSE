@@ -233,21 +233,17 @@ class NeuralNetwork:
                     f"Epoch {cur_epoch} : Train Accuracy = {self.train_accuracy[-1]} % Test Accuracy = {self.test_accuracy[-1]} %")
         epochs = range(10, self.num_epochs+1, 10)
         plt.plot(epochs, self.train_accuracy, label='Train Accuracy')
-        plt.xlabel('Epochs')
-        plt.ylabel('Train Accuracy')
-        plt.title('Train Accuracy vs Epochs')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(f"../OUTPUT/Train_Accuracy_{self.num_hidden}.png")
-        plt.show()
-
         plt.plot(epochs, self.test_accuracy, label='Test Accuracy')
         plt.xlabel('Epochs')
-        plt.ylabel('Test Accuracy')
-        plt.title('Test Accuracy vs Epochs')
+        plt.ylabel('Accuracy')
         plt.legend()
-        plt.grid(True)
-        plt.savefig(f"../OUTPUT/Test_Accuracy_{self.num_hidden}.png")
+        plt.grid()
+        plt.title('Train and Test Accuracy vs Epochs')
+        file_name="Model_layer_"
+        for i in range(len(self.num_neurons_per_layer)):
+            file_name+=str(self.num_neurons_per_layer[i])+"_"
+        file_name+=str(self.num_neurons_out_layer)
+        plt.savefig(f"../OUTPUT/{file_name}.png")
         plt.show()
 
         print(f"Final Train Accuracy = {self.train_accuracy[-1]} %")

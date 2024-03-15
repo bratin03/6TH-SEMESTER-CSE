@@ -45,3 +45,40 @@ void *runner(void *param)
  bratin  bratin03  ../MATERIALS/thread  ./a.out 5
 sum = 15
 */
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    pthread_t thread_id;
+    int ret;
+
+    printf("Main thread starts.\n");
+
+    // Create a new thread
+    printf("Creating a new thread.\n");
+    ret = pthread_create(&thread_id, NULL, (void *)main, NULL);
+    if (ret != 0)
+    {
+        printf("Error: pthread_create() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("New thread created.\n");
+
+    // Wait for the thread to finish
+    ret = pthread_join(thread_id, NULL);
+    if (ret != 0)
+    {
+        printf("Error: pthread_join() failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Main thread exits.\n");
+
+    return 0;
+}
+
+// The output of the program is:
+// It recursively creates new threads, and the program never exits.

@@ -1,3 +1,16 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #include "msocket.h"
 #include <errno.h>
 #include <sys/types.h>
@@ -301,7 +314,6 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     {
 
         SM[sockfd].receive_window.seq_buf_index_map[(SM[sockfd].receive_window.last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[sockfd].receive_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet] + j + 1) % RECV_BUFF_SIZE;
-        // printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
     }
     if (SM[sockfd].receive_window.nospace == 1)
     {

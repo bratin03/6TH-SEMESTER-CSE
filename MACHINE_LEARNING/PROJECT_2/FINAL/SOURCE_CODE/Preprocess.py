@@ -6,8 +6,8 @@ Project Title: Song Popularity using Neural Networks
 """
 
 import pandas as pd
-
-def Preprocess(input_file="../DATASET/song.csv", randSeed=42):
+import time
+def Preprocess(input_file="../DATASET/song.csv", randSeed=int(time.time())):
     """
     Module Name: Preprocess
     Purpose: To preprocess the input dataset and split it into training and testing datasets

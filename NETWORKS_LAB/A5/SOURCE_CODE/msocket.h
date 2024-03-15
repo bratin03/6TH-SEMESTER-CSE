@@ -1,3 +1,16 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #ifndef MSOCKET_H
 #define MSOCKET_H
 
@@ -10,10 +23,11 @@
 #define RECV_BUFF_SIZE 5
 #define SEND_BUFF_SIZE 10
 #define MAX_SEQ_NUM 16
-#define MSG_SIZE 9
+#define MSG_SIZE 15
 #define N 25
 #define SOCK_MTP 689
 #define P 0.2
+#define MAX_TRIES_AFTER_CLOSE 8
 
 extern struct sembuf pop, vop;
 

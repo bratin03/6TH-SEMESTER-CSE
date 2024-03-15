@@ -75,21 +75,14 @@ for epoch in range(1, 201):
 epochs = range(10, 201, 10)
 # Plot the accuracies
 plt.plot(epochs, train_accuracies, label='Train Accuracy')
-plt.xlabel('Epochs')
-plt.ylabel('Train Accuracy (%)')
-plt.title('Train Accuracy vs Epochs')
-plt.legend()
-plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_1_train_classifier.png')
-plt.show()
-
 plt.plot(epochs, test_accuracies, label='Test Accuracy')
+
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy (%)')
-plt.title('Accuracy vs Epochs')
+plt.title('Train and Test Accuracy vs Epochs')
 plt.legend()
 plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_1_test_classifier.png')
+plt.savefig('../OUTPUT/scikit_learn_model_1_accuracy_comparison.png')
 plt.show()
 # Print the final accuracies
 print(f"Final Train accuracy: {train_accuracies[-1]} %")
@@ -139,21 +132,14 @@ for epoch in range(1, 201):
 epochs = range(10, 201, 10)
 # Plot the accuracies
 plt.plot(epochs, train_accuracies, label='Train Accuracy')
-plt.xlabel('Epochs')
-plt.ylabel('Train Accuracy (%)')
-plt.title('Train Accuracy vs Epochs')
-plt.legend()
-plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_2_train_classifier.png')
-plt.show()
-
 plt.plot(epochs, test_accuracies, label='Test Accuracy')
+
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy (%)')
-plt.title('Accuracy vs Epochs')
+plt.title('Train and Test Accuracy vs Epochs')
 plt.legend()
 plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_2_test_classifier.png')
+plt.savefig('../OUTPUT/scikit_learn_model_2_accuracy_comparison.png')
 plt.show()
 # Print the final accuracies
 print(f"Final Train accuracy: {train_accuracies[-1]} %")
@@ -207,23 +193,15 @@ for epoch in range(1, 201):
 epochs = range(10, 201, 10)
 # Plot the accuracies
 plt.plot(epochs, train_accuracies, label='Train Accuracy')
-plt.xlabel('Epochs')
-plt.ylabel('Train Accuracy (%)')
-plt.title('Train Accuracy vs Epochs')
-plt.legend()
-plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_3_train_regressor.png')
-plt.show()
-
 plt.plot(epochs, test_accuracies, label='Test Accuracy')
+
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy (%)')
-plt.title('Accuracy vs Epochs')
+plt.title('Train and Test Accuracy vs Epochs')
 plt.legend()
 plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_3_test_regressor.png')
+plt.savefig('../OUTPUT/scikit_learn_model_3_accuracy_comparison.png')
 plt.show()
-
 # Print the final accuracies
 print(f"Final Train accuracy: {train_accuracies[-1]} %")
 print(f"Final Test accuracy: {test_accuracies[-1]} %")
@@ -272,21 +250,14 @@ epochs = range(10, 201, 10)
 
 # Plot the accuracies
 plt.plot(epochs, train_accuracies, label='Train Accuracy')
-plt.xlabel('Epochs')
-plt.ylabel('Train Accuracy (%)')
-plt.title('Train Accuracy vs Epochs')
-plt.legend()
-plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_4_train_regressor.png')
-plt.show()
-
 plt.plot(epochs, test_accuracies, label='Test Accuracy')
+
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy (%)')
-plt.title('Accuracy vs Epochs')
+plt.title('Train and Test Accuracy vs Epochs')
 plt.legend()
 plt.grid(True)
-plt.savefig('../OUTPUT/scikit_learn_model_4_test_regressor.png')
+plt.savefig('../OUTPUT/scikit_learn_model_4_accuracy_comparison.png')
 plt.show()
 
 # Print the final accuracies

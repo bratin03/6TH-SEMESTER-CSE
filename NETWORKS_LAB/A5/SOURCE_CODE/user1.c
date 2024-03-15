@@ -1,3 +1,19 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+/*
+User 1 receives messages from User 2. It keeps on receiving messages until it receives "TheEnd" message.
+*/
+
 #include "msocket.h"
 #include <stdio.h>
 #include <stdlib.h>

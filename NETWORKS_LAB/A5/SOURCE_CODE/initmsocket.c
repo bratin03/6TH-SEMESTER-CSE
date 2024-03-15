@@ -1,3 +1,16 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #include "msocket.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +26,10 @@
 #include <errno.h>
 #include <math.h>
 
-#ifdef DEBUG
+// Define DLOG to enable the server logs
+#define DLOG
+
+#ifdef DLOG
 void red()
 {
     printf("\033[1;31m");
@@ -34,14 +50,24 @@ void orange()
     printf("\033[1;33m");
 }
 
+void blue()
+{
+    printf("\033[1;34m");
+}
+
+void cyan()
+{
+    printf("\033[1;36m");
+}
+
+void grey()
+{
+    printf("\033[1;37m");
+}
+
 void reset()
 {
     printf("\033[0m");
-}
-
-void magenta()
-{
-    printf("\033[1;35m");
 }
 #endif
 
@@ -55,11 +81,16 @@ int table_lock, sem_1, sem_2, sock_info_lock;
 int sem_row[N];
 struct sembuf pop, vop;
 int m_close_requested[N] = {0};
+int m_close_retry_count[N] = {0};
 
 void sigchld_handler(int signo)
 {
+#ifdef DLOG
+    grey();
     printf("\n\nInit:\nSignal received %s\n", strsignal(signo));
     printf("Clearing Shared Memory\n");
+    reset();
+#endif
     shmdt(SM);
     shmdt(SI);
     shmctl(shmid, IPC_RMID, NULL);
@@ -72,9 +103,13 @@ void sigchld_handler(int signo)
     {
         semctl(sem_row[i], 0, IPC_RMID);
     }
+#ifdef DLOG
+    grey();
     printf("Shared Memory Cleared\n");
     printf("Exiting\n");
-    exit(0);
+    reset();
+#endif
+    exit(EXIT_SUCCESS);
 }
 
 void decimal_to_binary(int decimal, char *buffer)
@@ -110,6 +145,11 @@ void send_ack(int sock, struct in_addr dest_ip, int dest_port, int seq_num, int 
         perror("sendto");
         exit(EXIT_FAILURE);
     }
+#ifdef DLOG
+    grey();
+    printf("Ack: %s\n", ack);
+    reset();
+#endif
 }
 void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char *msg)
 {
@@ -127,6 +167,11 @@ void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char
         perror("sendto");
         exit(EXIT_FAILURE);
     }
+#ifdef DLOG
+    cyan();
+    printf("Msg: %s\n", send_msg);
+    reset();
+#endif
 }
 
 int binary_to_decimal(char *binary, int size)
@@ -146,10 +191,8 @@ int binary_to_decimal(char *binary, int size)
 
 void *Garbage_Collector()
 {
-    // printf("Garbage Collector Started\n");
     while (1)
     {
-        // Down(table_lock);
         for (int i = 0; i < N; i++)
         {
             if (SM[i].is_available == 0)
@@ -160,13 +203,14 @@ void *Garbage_Collector()
                     int to_send = 0;
                     for (int k = 0; k < SEND_BUFF_SIZE; k++)
                     {
-                        if (SM[i].send_window.buffer_is_valid[k] == 1)
+                        if (SM[i].send_window.buffer_is_valid[k] != 0)
                         {
                             to_send = 1;
+                            m_close_retry_count[i]++;
                             break;
                         }
                     }
-                    if (to_send == 0)
+                    if (to_send == 0 || m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
                     {
                         SM[i].is_available = 1;
                         m_close_requested[i] = 0;
@@ -175,7 +219,16 @@ void *Garbage_Collector()
                             perror("close");
                             exit(EXIT_FAILURE);
                         }
-                        // printf("Closed socket %d\n", i);
+#ifdef DLOG
+                        red();
+                        printf("Garbage Collector: Closed socket %d\n", i);
+                        if (m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
+                        {
+                            printf("Garbage Collector: Max tries after close reached for table entry %d\n", i);
+                        }
+                        reset();
+#endif
+                        m_close_retry_count[i] = 0;
                     }
                     Up(sem_row[i]);
                     continue;
@@ -187,13 +240,14 @@ void *Garbage_Collector()
                         int to_send = 0;
                         for (int k = 0; k < SEND_BUFF_SIZE; k++)
                         {
-                            if (SM[i].send_window.buffer_is_valid[k] == 1)
+                            if (SM[i].send_window.buffer_is_valid[k] != 0)
                             {
                                 to_send = 1;
+                                m_close_retry_count[i]++;
                                 break;
                             }
                         }
-                        if (to_send == 0)
+                        if (to_send == 0 || m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
                         {
                             SM[i].is_available = 1;
                             if (m_close_requested[i] == 1)
@@ -205,7 +259,16 @@ void *Garbage_Collector()
                                 perror("close");
                                 exit(EXIT_FAILURE);
                             }
-                            // printf("Closed socket %d\n", i);
+#ifdef DLOG
+                            red();
+                            printf("Garbage Collector: Closed socket %d\n", i);
+                            if (m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
+                            {
+                                printf("Garbage Collector: Max tries after close reached for table entry %d\n", i);
+                            }
+                            reset();
+#endif
+                            m_close_retry_count[i] = 0;
                         }
                     }
                     else
@@ -217,23 +280,6 @@ void *Garbage_Collector()
                 Up(sem_row[i]);
             }
         }
-#ifdef DEBUG
-        pink();
-        for (int i = 0; i <= 0; i++)
-        {
-
-            printf("i = %d\n", i);
-            printf("SM[%d].is_available = %d SM[%d].pid = %d\n SM[%d].src_sock = %d\n", i, SM[i].is_available, i, SM[i].pid, i, SM[i].src_sock);
-            printf("\n");
-            for (int j = 0; j < RECV_BUFF_SIZE; j++)
-            {
-                printf("SM[%d].recv_buff[%d] = %s SM[%d].recv_buff.buffer_is_valid[%d] = %d\n", i, j, SM[i].recv_buff[j], i, j, SM[i].receive_window.buffer_is_valid[j]);
-                printf("\n");
-            }
-        }
-        reset();
-#endif
-        // Up(table_lock);
         sleep(2 * T);
     }
 }
@@ -292,18 +338,12 @@ void *R_Thread()
 
                     for (int j = 0; j < RECV_BUFF_SIZE; j++)
                     {
-
                         SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + (j + 1)) % RECV_BUFF_SIZE;
-#ifdef DEBUG
-                        magenta();
-                        printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
-                        reset();
-#endif
                     }
                     send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
-#ifdef DEBUG
+#ifdef DLOG
                     green();
-                    printf("Sending Ack indicatating space available");
+                    printf("R Thread: Sending Ack indicating space available for table entry %d. Ack No: %d Window Size: %d\n", i, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
                     reset();
 #endif
                     Up(sem_row[i]);
@@ -319,18 +359,13 @@ void *R_Thread()
 
                 if (FD_ISSET(SM[i].src_sock, &readfds))
                 {
-#ifdef DEBUG
-                    green();
-                    printf("Received data on %d\n", i);
-                    reset();
-#endif
                     struct sockaddr_in src_addr;
                     socklen_t src_addr_len = sizeof(src_addr);
-                    char RECVMSG[MSG_SIZE + 5];
-                    int ret = recvfrom(SM[i].src_sock, RECVMSG, MSG_SIZE + 5, 0, (struct sockaddr *)&src_addr, &src_addr_len);
-#ifdef DEBUG
-                    green();
-                    printf("Received: %s\n", RECVMSG);
+                    char msg[MSG_SIZE + 5];
+                    int ret = recvfrom(SM[i].src_sock, msg, MSG_SIZE + 5, 0, (struct sockaddr *)&src_addr, &src_addr_len);
+#ifdef DLOG
+                    orange();
+                    printf("R Thread: Received %s for table entry %d\n", msg, i);
                     reset();
 #endif
                     if (ret == -1)
@@ -338,136 +373,109 @@ void *R_Thread()
                         perror("recvfrom");
                         exit(EXIT_FAILURE);
                     }
-                    char id_bit = RECVMSG[0];
+                    if (dropMessage(P))
+                    {
+#ifdef DLOG
+                        red();
+                        printf("R Thread: Dropped packet for table entry %d. Content: %s\n", i, msg);
+                        reset();
+#endif
+                        continue;
+                    }
+#ifdef DLOG
+                    cyan();
+                    printf("R Thread: Packet Not Dropped for table entry %d. Content: %s\n", i, msg);
+                    reset();
+#endif
+                    char id_bit = msg[0];
                     if (id_bit == '0')
                     {
                         char seq_num[5];
-                        strncpy(seq_num, RECVMSG + 1, 4);
+                        strncpy(seq_num, msg + 1, 4);
                         seq_num[4] = '\0';
                         int seq_num_int = binary_to_decimal(seq_num, 4);
                         Down(sem_row[i]);
                         int last_inorder_packet = SM[i].receive_window.last_inorder_packet;
                         int window_size = SM[i].receive_window.window_size;
                         int next_to_deliver = (last_inorder_packet + 1) % MAX_SEQ_NUM;
-#ifdef DEBUG
-                        green();
-                        printf("seq_num_int: %d last_inorder_packet: %d window_size: %d next_to_deliver: %d\n", seq_num_int, last_inorder_packet, window_size, next_to_deliver);
-                        reset();
-#endif
+
+                        if (seq_num_int == last_inorder_packet)
+                        {
+                            send_ack(SM[i].src_sock, src_addr.sin_addr, src_addr.sin_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
+                            Up(sem_row[i]);
+                            continue;
+                        }
+
                         if (((seq_num_int - last_inorder_packet + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
 
                             int buffer_index = SM[i].receive_window.seq_buf_index_map[seq_num_int];
-#ifdef DEBUG
-                            green();
-                            printf("Buffer Index: %d\n", buffer_index);
-                            reset();
-#endif
                             if (SM[i].receive_window.buffer_is_valid[buffer_index] == 0)
                             {
-                                strcpy(SM[i].recv_buff[buffer_index], RECVMSG + 5);
+                                strcpy(SM[i].recv_buff[buffer_index], msg + 5);
                                 SM[i].receive_window.buffer_is_valid[buffer_index] = 1;
                             }
                             if (seq_num_int == next_to_deliver)
                             {
 
-                                int next_index = (last_inorder_packet + 1) % MAX_SEQ_NUM;
-                                while (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]] == 1 && (((next_index - last_inorder_packet + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size))
-                                {
-#ifdef DEBUG
-                                    green();
-                                    printf("Next Index: %d\n", next_index);
-                                    printf("SM[i].receive_window.seq_buf_index_map[next_index]: %d\n", SM[i].receive_window.seq_buf_index_map[next_index]);
-                                    printf("SM[i].recv_buff.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]]: %d\n", SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[next_index]]);
-                                    reset();
-#endif
-                                    SM[i].receive_window.last_inorder_packet = next_index;
-                                    next_index = (next_index + 1) % MAX_SEQ_NUM;
-                                }
-                                last_inorder_packet = SM[i].receive_window.last_inorder_packet;
-                                int new_window_size = 0;
-                                for (int j = 0; j < window_size - 1; j++)
-                                {
-                                    if (SM[i].receive_window.buffer_is_valid[(SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM])] == 1)
-                                    {
-#ifdef DEBUG
-                                        printf("Buffer is valid at seq no %d and buffer index %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
-                                        for (int k = 0; k < RECV_BUFF_SIZE; k++)
-                                        {
-                                            printf("SM[i].recv_buff[%d] = %s SM[i].receive_window.buffer_is_valid[%d] = %d\n", k, SM[i].recv_buff[k], k, SM[i].receive_window.buffer_is_valid[k]);
-                                        }
-#endif
-
-                                        break;
-                                    }
-                                    new_window_size++;
-                                }
+                                int buffer_index_outside_window = SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + window_size + 1) % MAX_SEQ_NUM];
+                                int outside_free_count = 0;
                                 for (int j = 0; j < RECV_BUFF_SIZE; j++)
                                 {
-                                    SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + (j + 1)) % RECV_BUFF_SIZE;
-#ifdef DEBUG
-                                    orange();
-                                    printf("SM[i].receive_window.seq_buf_index_map[%d] = %d\n", (last_inorder_packet + j + 1) % MAX_SEQ_NUM, SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM]);
-                                    reset();
-#endif
+
+                                    int cur_buf_index = (buffer_index_outside_window + j) % RECV_BUFF_SIZE;
+                                    if (cur_buf_index == SM[i].receive_window.seq_buf_index_map[next_to_deliver])
+                                    {
+                                        break;
+                                    }
+                                    if (SM[i].receive_window.buffer_is_valid[cur_buf_index] == 0)
+                                    {
+                                        outside_free_count++;
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
                                 }
+
+                                last_inorder_packet = seq_num_int;
+                                while (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + 1) % MAX_SEQ_NUM]] == 1 && (((last_inorder_packet + 1 - next_to_deliver + MAX_SEQ_NUM) % MAX_SEQ_NUM) < window_size))
+                                {
+                                    last_inorder_packet = (last_inorder_packet + 1) % MAX_SEQ_NUM;
+                                }
+                                int new_window_size = (buffer_index_outside_window - SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + RECV_BUFF_SIZE) % RECV_BUFF_SIZE;
+                                SM[i].receive_window.last_inorder_packet = last_inorder_packet;
                                 SM[i].receive_window.window_size = new_window_size;
                                 if (new_window_size == 0)
                                 {
                                     SM[i].receive_window.nospace = 1;
                                     prev_empty[i] = 1;
                                 }
+
                             }
-#ifdef DEBUG
+#ifdef DLOG
                             green();
-                            printf("\nLast Inorder Packet: %d\n\n", SM[i].receive_window.last_inorder_packet);
+                            printf("R Thread: Received and stored packet %d for table entry %d\n", seq_num_int, i);
+                            printf("Sending Ack for table entry %d. Ack No: %d Window Size: %d\n", i, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
                             reset();
 #endif
-                            // char ack[MSG_SIZE + 9];
-                            // ack[0] = '1';
-                            // decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
-                            // decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
-                            // struct sockaddr_in dest_addr;
-                            // dest_addr.sin_family = AF_INET;
-                            // dest_addr.sin_port = SM[i].dest_port;
-                            // dest_addr.sin_addr = SM[i].dest_ip;
-                            // green();
-                            // printf("Sending Normal Ack: %s\n", ack);
-                            // reset();
-                            // int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                            // if (ret == -1)
-                            // {
-                            //     perror("sendto");
-                            //     Up(sem_row[i]);
-                            //     exit(1);
-                            // }
                             send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
                             Up(sem_row[i]);
                         }
                         else if (SM[i].receive_window.nospace == 1)
                         {
-                            // char ack[MSG_SIZE + 9];
-                            // ack[0] = '1';
-                            // // Down(table_lock);
-                            // decimal_to_binary(SM[i].receive_window.last_inorder_packet, ack + 1);
-                            // decimal_to_binary(SM[i].receive_window.window_size, ack + 5);
-                            // struct sockaddr_in dest_addr;
-                            // dest_addr.sin_family = AF_INET;
-                            // dest_addr.sin_port = SM[i].dest_port;
-                            // dest_addr.sin_addr = SM[i].dest_ip;
-                            // int ret = sendto(SM[i].src_sock, ack, MSG_SIZE + 9, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                            // if (ret == -1)
-                            // {
-                            //     perror("sendto");
-                            //     Up(sem_row[i]);
-                            //     exit(1);
-                            // }
-                            send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
-#ifdef DEBUG
+#ifdef DLOG
                             green();
-                            printf("Sending Ack indicating no space: %s\n", ack);
+                            printf("R Thread: Received packet %d for table entry %d. No space available. Sending Ack indicating space available for table entry %d. Ack No: %d Window Size: %d\n", seq_num_int, i, i, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
+                            printf("Sending Ack indicating no space available for table entry %d. Ack No: %d Window Size: %d\n", i, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
                             reset();
 #endif
+                            send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size);
+
+                            Up(sem_row[i]);
+                        }
+                        else
+                        {
                             Up(sem_row[i]);
                         }
                     }
@@ -475,30 +483,29 @@ void *R_Thread()
                     {
                         // Ack
                         char seq_num[5];
-                        strncpy(seq_num, RECVMSG + 1, 4);
+                        strncpy(seq_num, msg + 1, 4);
                         seq_num[4] = '\0';
                         int ack_num = binary_to_decimal(seq_num, 4);
                         char window_size_update[5];
-                        strncpy(window_size_update, RECVMSG + 5, 4);
+                        strncpy(window_size_update, msg + 5, 4);
                         window_size_update[4] = '\0';
                         int new_window_size = binary_to_decimal(window_size_update, 4);
                         Down(sem_row[i]);
                         int last_seq_ack = SM[i].send_window.last_seq_ack;
                         int window_size = SM[i].send_window.window_size;
 
-#ifdef DEBUG
-                        green();
-                        printf("Ack Num: %d Last Seq Ack: %d Window Size: %d Next to Send: %d New Window Size: %d\n", ack_num, last_seq_ack, window_size, next_to_send, new_window_size);
-                        reset();
-#endif
                         if (((ack_num - last_seq_ack + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
                             if (ack_num == last_seq_ack)
                             {
+                                // Do nothing
                             }
-                            for (int j = 0; j < (ack_num - last_seq_ack + MAX_SEQ_NUM) % MAX_SEQ_NUM; j++)
+                            else
                             {
-                                SM[i].send_window.buffer_is_valid[SM[i].send_window.seq_buf_index_map[(last_seq_ack + j + 1) % MAX_SEQ_NUM]] = 0;
+                                for (int j = 0; j < (ack_num - last_seq_ack + MAX_SEQ_NUM) % MAX_SEQ_NUM; j++)
+                                {
+                                    SM[i].send_window.buffer_is_valid[SM[i].send_window.seq_buf_index_map[(last_seq_ack + j + 1) % MAX_SEQ_NUM]] = 0;
+                                }
                             }
                         }
                         SM[i].send_window.last_seq_ack = ack_num;
@@ -507,6 +514,12 @@ void *R_Thread()
                         {
                             SM[i].send_window.seq_buf_index_map[(ack_num + j + 1) % MAX_SEQ_NUM] = (SM[i].send_window.seq_buf_index_map[ack_num] + (j + 1)) % SEND_BUFF_SIZE;
                         }
+#ifdef DLOG
+                        pink();
+                        printf("R Thread: Received Ack for table entry %d. Ack No: %d Window Size: %d\n", i, ack_num, new_window_size);
+                        printf("Updated window size for table entry %d: %d and Next to send: %d\n", i, new_window_size, (ack_num + 1) % MAX_SEQ_NUM);
+                        reset();
+#endif
 
                         Up(sem_row[i]);
                     }
@@ -527,24 +540,9 @@ void *S_Thread()
             {
                 Down(table_lock);
                 int next_to_send = (SM[i].send_window.last_seq_ack + 1) % MAX_SEQ_NUM;
-#ifdef DEBUG
-                if (i == 1)
-                {
-                    red();
-                    printf("Next to send: %d\n", next_to_send);
-                    reset();
-                }
-#endif
                 int next_to_send_index = SM[i].send_window.seq_buf_index_map[next_to_send];
                 int window_size = SM[i].send_window.window_size;
-#ifdef DEBUG
-                if (i == 1)
-                {
-                    red();
-                    printf("Next to send index: %d Window Size: %d\n", next_to_send_index, window_size);
-                    reset();
-                }
-#endif
+
                 for (int j = 0; j < window_size; j++)
                 {
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 0)
@@ -555,10 +553,9 @@ void *S_Thread()
                     {
                         if ((time(NULL) - SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]) > T)
                         {
-#ifdef DEBUG
-                            orange();
-                            printf("Time Now: %ld, Time Last Sent: %ld\n", time(NULL), SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]);
-                            printf("Timeout difference: %ld\n", time(NULL) - SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]);
+#ifdef DLOG
+                            pink();
+                            printf("S Thread: Timeout! Resending packet %d for table entry %d\n", (next_to_send + j) % MAX_SEQ_NUM, i);
                             reset();
 #endif
                             SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM] = time(NULL);
@@ -570,30 +567,16 @@ void *S_Thread()
                     }
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 1)
                     {
+#ifdef DLOG
+                        pink();
+                        printf("S Thread: Sending packet %d for table entry %d\n", (next_to_send + j) % MAX_SEQ_NUM, i);
+                        reset();
+#endif
                         SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM] = time(NULL);
                     }
                     SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] = 2;
-                    // struct sockaddr_in dest_addr;
-                    // dest_addr.sin_family = AF_INET;
-                    // dest_addr.sin_port = SM[i].dest_port;
-                    // dest_addr.sin_addr = SM[i].dest_ip;
-                    // char msg[MSG_SIZE + 5];
-                    // msg[0] = '0';
-                    // decimal_to_binary((next_to_send + j) % MAX_SEQ_NUM, msg + 1);
-                    // strcat(msg + 5, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
-                    // int ret = sendto(SM[i].src_sock, msg, MSG_SIZE + 5, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-                    // if (ret == -1)
-                    // {
-                    //     perror("sendto");
-                    //     Up(table_lock);
-                    //     exit(1);
-                    // }
+
                     send_msg(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, (next_to_send + j) % MAX_SEQ_NUM, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
-#ifdef DEBUG
-                    red();
-                    printf("Sent: %s\n", msg);
-                    reset();
-#endif
                 }
                 Up(table_lock);
             }
@@ -604,17 +587,16 @@ void *S_Thread()
 
 int main()
 {
+    srand(time(NULL));
     pop.sem_num = vop.sem_num = 0;
     pop.sem_flg = vop.sem_flg = 0;
     pop.sem_op = -1;
     vop.sem_op = 1;
 
-    // printf("BP: 1\n");
     key_t key_;
     key_ = ftok("/usr/bin", 1);
     shmid = shmget(key_, N * sizeof(struct shared_memory), 0666 | IPC_CREAT);
     SM = (struct shared_memory *)shmat(shmid, (void *)0, 0);
-    // printf("BP: 2\n");
     key_t key_1 = ftok("/usr/bin", 2);
     shmid_1 = shmget(key_1, sizeof(struct SOCK_INFO), 0666 | IPC_CREAT);
     SI = (struct SOCK_INFO *)shmat(shmid_1, (void *)0, 0);
@@ -623,30 +605,24 @@ int main()
     SI->port = 0;
     SI->sock_id = 0;
     SI->to_close = 0;
-    // printf("BP: 3\n");
     key_t key_table_lock = ftok("/usr/bin", 3);
     table_lock = semget(key_table_lock, 1, 0666 | IPC_CREAT);
     semctl(table_lock, 0, SETVAL, 1);
-    // printf("BP: 4\n");
     key_t key_sem_1 = ftok("/usr/bin", 4);
     sem_1 = semget(key_sem_1, 1, 0666 | IPC_CREAT);
     semctl(sem_1, 0, SETVAL, 0);
-    // printf("BP: 5\n");
     key_t key_sem_2 = ftok("/usr/bin", 5);
     sem_2 = semget(key_sem_2, 1, 0666 | IPC_CREAT);
     semctl(sem_2, 0, SETVAL, 0);
-    // printf("BP: 6\n");
     key_t key_sock_info_lock = ftok("/usr/bin", 6);
     sock_info_lock = semget(key_sock_info_lock, 1, 0666 | IPC_CREAT);
     semctl(sock_info_lock, 0, SETVAL, 1);
-    // printf("BP: 7\n");
     for (int i = 0; i < N; i++)
     {
         key_t key_sem_row = ftok("/usr/bin", 7 + i);
         sem_row[i] = semget(key_sem_row, 1, 0666 | IPC_CREAT);
         semctl(sem_row[i], 0, SETVAL, 1);
     }
-    // printf("BP: 8\n");
 
     Down(table_lock);
     for (int i = 0; i < N; i++)
@@ -654,25 +630,33 @@ int main()
         SM[i].is_available = 1;
     }
     Up(table_lock);
-    // printf("BP: 9\n");
-    // pthread_mutex_unlock(&table_lock);
     pthread_t G, R, S;
 
     pthread_create(&G, NULL, Garbage_Collector, NULL);
     pthread_create(&R, NULL, R_Thread, NULL);
     pthread_create(&S, NULL, S_Thread, NULL);
+
+#ifdef DLOG
+    grey();
+    printf("R, S and Garbage Collector Threads created\n");
+    reset();
+#endif
+
     signal(SIGTERM, sigchld_handler);
     signal(SIGINT, sigchld_handler);
     signal(SIGQUIT, sigchld_handler);
     while (1)
     {
         Down(sem_1);
-        // sem_wait(&sem1);
 
         Down(sock_info_lock);
-        // pthread_mutex_lock(&sock_info_lock);
         if (SI->to_close == 1)
         {
+#ifdef DLOG
+            grey();
+            printf("Init: Close request received for table entry %d\n", SI->sock_id);
+            reset();
+#endif
             int index = SI->sock_id;
             if (SM[index].is_available == 1)
             {
@@ -698,6 +682,7 @@ int main()
                 if (SM[index].send_window.buffer_is_valid[i] != 0)
                 {
                     to_send = 1;
+                    m_close_retry_count[index]++;
                     break;
                 }
             }
@@ -713,10 +698,19 @@ int main()
                     Up(sock_info_lock);
                     continue;
                 }
-                // printf("Closed socket %d\n", index);
+#ifdef DLOG
+                green();
+                printf("Init: Closed socket for table entry %d\n", index);
+                reset();
+#endif
             }
             else
             {
+#ifdef DLOG
+                red();
+                printf("Init: Close request marked for table entry %d. Closing after sending all packets\n", index);
+                reset();
+#endif
                 m_close_requested[index] = 1;
             }
             Up(table_lock);
@@ -728,33 +722,42 @@ int main()
         }
         else if (SI->port == 0 && SI->sock_id == 0)
         {
+#ifdef DLOG
+            grey();
+            printf("Init: Socket request received\n");
+            reset();
+#endif
             int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-            // printf("UDP FD: %d\n", udp_fd);
             if (udp_fd < 0)
             {
                 SI->errorno = errno;
                 SI->sock_id = -1;
-                // #ifdef DEBUG
-                //                 printf("Signal sent\n");
-                // #endif
+#ifdef DLOG
+                red();
+                printf("Init: Socket creation failed\n");
+                reset();
+#endif
+
                 Up(sem_2);
-                // sem_post(&sem2);
                 Up(sock_info_lock);
-                // pthread_mutex_unlock(&sock_info_lock);
                 continue;
             }
             SI->sock_id = udp_fd;
-            // #ifdef DEBUG
-            //             printf("Signal sent\n");
-            // #endif
+#ifdef DLOG
+            green();
+            printf("Init: Socket created successfully\n");
+            reset();
+#endif
             Up(sem_2);
-            // sem_post(&sem2);
             Up(sock_info_lock);
-            // pthread_mutex_unlock(&sock_info_lock);
         }
         else
         {
-
+#ifdef DLOG
+            grey();
+            printf("Init: Bind request received for table entry %d\n", SI->sock_id);
+            reset();
+#endif
             struct sockaddr_in addr;
             addr.sin_family = AF_INET;
             addr.sin_port = SI->port;
@@ -764,16 +767,30 @@ int main()
             {
                 SI->errorno = errno;
                 SI->sock_id = -1;
+#ifdef DLOG
+                red();
+                printf("Init: Bind failed for table entry %d\n", SI->sock_id);
+                reset();
+#endif
+
                 Up(sem_2);
                 Up(sock_info_lock);
                 continue;
             }
             else
             {
+#ifdef DLOG
+                green();
+                printf("Init: Bind successful for table entry %d\n", SI->sock_id);
+                reset();
+#endif
                 Up(sem_2);
                 Up(sock_info_lock);
             }
         }
     }
     pthread_join(G, NULL);
+    pthread_join(R, NULL);
+    pthread_join(S, NULL);
+    exit(EXIT_SUCCESS);
 }
