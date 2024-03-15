@@ -3,17 +3,21 @@
 - `DATASET`: Contains the dataset files for the assignment.
 - `SOURCE_CODE`: Contains the source code files for the assignment.
 
-## Dataset
+## DATASET
 
 - `song.csv`: The dataset for the assignment.
 - `train.csv`: The training dataset.
 - `test.csv`: The test dataset.
 
-## Source Code
+## SOURCE_CODE
 
 - `Preprocess.py`: The script is used to preprocess the dataset and split it into training and test datasets and save them in the DATASET directory.
 - `Model.py`: The script contains the model implementation for the Neural Network along with the different modules as mentioned in the assignment.
 - `main.py`: The main script for the assignment.
+- `My_Model.py`: The script contains the model implementation for the Neural Network along with the different modules with some improvements over the original model.
+- `scikit_learn.py`: The script contains the implementation of the model using scikit-learn.
+- `makefile`: The makefile for running the project.
+- `requirements.txt`: The file contains the required packages for the project.
 # Usage
 
 To run the project, execute the following command from terminal from SOURCE_CODE directory:
@@ -26,6 +30,13 @@ To run the project using scikit-learn, execute the following command from termin
 ```bash
 make test_scikit_learn
 ```
+
+To run the project using the improved model, execute the following command from terminal from SOURCE_CODE directory:
+
+```bash
+make mymodel
+```
+
 To clean the project, execute the following command from terminal from SOURCE_CODE directory:
 
 ```bash
@@ -51,20 +62,6 @@ python3 Preprocess.py
 ```bash
 make model
 ```
-<!-- # Outputs
-A new directory named `OUTPUT` will be created in the SOURCE_CODE directory.
-The directory will contain the following files:
+# Outputs
+A new directory named `OUTPUT` will be created in the main directory. The plot for training accuracy and test accuracy vs epoch will be saved in the `OUTPUT` directory.
 
-# File Descriptions
-
-- `label_mappings.json`: The JSON file contains mappings between categorical variables and their corresponding numerical representations.
-- `reverse_label_mapping.json`: The JSON file contains mappings between numerical representations and their corresponding categorical variables.
-- `mc_train_formatted.csv`: The formatted training dataset.
-- `mc_test_formatted.csv`: The formatted test dataset.
-- `requirements.txt`: The file contains the required packages for the project.
-- `data_formatter.py`: The script is used to format the dataset.
-- `scikit_learn_tree.py`: The script contains the decision tree implementation using scikit-learn.
-- `helper.py`: The script contains helper functions used in the project.
-- `model.py`: The script contains the model implementation.
-- `main.py`: The main script for the assignment.
-- `makefile`: The makefile for running the project. -->

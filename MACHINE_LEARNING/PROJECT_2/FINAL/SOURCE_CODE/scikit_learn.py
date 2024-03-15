@@ -39,6 +39,8 @@ Model 1: MLP with 1 hidden layer of 32 neurons using MLPClassifier
 """
 print("MLP Model 1")
 print("-----------")
+print("MLPClassifier")
+print("-----------")
 print("Hidden Layer Sizes: (32)")
 print("Activation Function: Sigmoid")
 print("Solver: Stochastic Gradient Descent")
@@ -94,6 +96,8 @@ print("\n")
 Model 2: MLP with 2 hidden layers of 64 and 32 neurons using MLPClassifier
 """
 print("\nMLP Model 2")
+print("-----------")
+print("MLPClassifier")
 print("-----------")
 print("Hidden Layer Sizes: (64, 32)")
 print("Activation Function: ReLU")
@@ -155,6 +159,8 @@ Model 3: MLP with 1 hidden layer of 32 neurons using MLPRegressor
 
 print("\nMLP Model 3")
 print("-----------")
+print("MLPRegressor")
+print("-----------")
 print("Hidden Layer Sizes: (32)")
 print("Activation Function: Sigmoid")
 print("Solver: Stochastic Gradient Descent")
@@ -211,6 +217,8 @@ Model 4: MLP with 2 hidden layers of 64 and 32 neurons using MLPRegressor
 """
 
 print("\nMLP Model 4")
+print("-----------")
+print("MLPRegressor")
 print("-----------")
 print("Hidden Layer Sizes: (64, 32)")
 print("Activation Function: ReLU")
