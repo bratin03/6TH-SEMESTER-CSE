@@ -418,6 +418,10 @@ void *R_Thread()
                             }
                             if (seq_num_int == next_to_deliver)
                             {
+                                for (int j = 0; j <= RECV_BUFF_SIZE; j++)
+                                {
+                                    SM[i].receive_window.seq_buf_index_map[(next_to_deliver + j) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[next_to_deliver] + j) % RECV_BUFF_SIZE;
+                                }
 
                                 int buffer_index_outside_window = SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + window_size + 1) % MAX_SEQ_NUM];
                                 int outside_free_count = 0;
@@ -425,7 +429,7 @@ void *R_Thread()
                                 {
 
                                     int cur_buf_index = (buffer_index_outside_window + j) % RECV_BUFF_SIZE;
-                                    if (cur_buf_index == SM[i].receive_window.seq_buf_index_map[next_to_deliver])
+                                    if (cur_buf_index == SM[i].receive_window.seq_buf_index_map[last_inorder_packet])
                                     {
                                         break;
                                     }
@@ -444,7 +448,7 @@ void *R_Thread()
                                 {
                                     last_inorder_packet = (last_inorder_packet + 1) % MAX_SEQ_NUM;
                                 }
-                                int new_window_size = (buffer_index_outside_window - SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + RECV_BUFF_SIZE) % RECV_BUFF_SIZE;
+                                int new_window_size = (buffer_index_outside_window - (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + 1) + RECV_BUFF_SIZE + outside_free_count) % RECV_BUFF_SIZE;
                                 SM[i].receive_window.last_inorder_packet = last_inorder_packet;
                                 SM[i].receive_window.window_size = new_window_size;
                                 if (new_window_size == 0)
@@ -452,7 +456,6 @@ void *R_Thread()
                                     SM[i].receive_window.nospace = 1;
                                     prev_empty[i] = 1;
                                 }
-
                             }
 #ifdef DLOG
                             green();
@@ -588,7 +591,7 @@ void *S_Thread()
 
 int main()
 {
-    srand(time(NULL));
+    srand(time(NULL) % getpid());
     pop.sem_num = vop.sem_num = 0;
     pop.sem_flg = vop.sem_flg = 0;
     pop.sem_op = -1;

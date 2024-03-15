@@ -1,0 +1,150 @@
+% This is a template for the title page of any assignment or report.
+% Owner: Bratin Mondal
+% Usage:
+% 1. Replace the placeholders with your information.
+% 2. Add any additional information, if needed.
+% 3. Add your university logo or any other image.
+% 4. Add any other details, if needed, below the image.
+% 5. Compile the document to see the output.
+
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{geometry}
+\renewcommand{\rmdefault}{ptm}
+\newcommand{\bmr}[1]{\textcolor{red}{#1}}
+\newcommand{\bmg}[1]{\textcolor{green}{#1}}
+\newcommand{\bmb}[1]{\textcolor{blue}{#1}}
+\newcommand{\bmp}[1]{\textcolor{magenta}{#1}}
+
+% Define macros for information
+\newcommand{\myName}{Bratin Mondal}
+\newcommand{\myRollNumber}{21CS10016}
+\newcommand{\myCourse}{CS60050 - Machine Learning}
+\newcommand{\myAssignment}{2}
+\newcommand{\myAssignmentTitle}{Song Popularity using Neural Networks}
+\newcommand{\myUniversity}{Indian Institute of Technology Kharagpur}
+\geometry{a4paper, margin=0.5in} % Adjust margins if necessary
+\begin{document}
+	
+	\begin{titlepage}
+		\centering
+		
+		{\Huge{\textbf{\myCourse}}}
+		\vspace{0.5cm}
+		
+		{\Huge{Assignment \myAssignment}}
+		
+		\vspace{2cm}
+		
+		% Add your university logo or any other image here
+		\includegraphics[width=0.5\textwidth]{iit_kgp_logo.png}
+		
+		\vspace{2cm}
+		
+		% Add your report title here
+		{\Huge\textbf{\myAssignmentTitle}}
+		
+		\vspace{2cm}
+		
+		% Add any other details like your name, date, etc.
+		{\Large\textbf{\myName}} 
+		\vspace{0.2cm}
+		
+		\large{\myRollNumber}    
+		\vspace{2cm}
+		
+		% Add any additional information, if needed
+		{\large\textit{Department of Computer Science and Engineering,}}
+		
+		{\large\textit{\myUniversity}}
+		\vspace{0.3cm}
+		
+		% Two lines above the image
+		\hrule 
+		\vspace{0.5cm}
+		
+		% Add any other details, if needed, below the image
+		
+	\end{titlepage}
+	
+	\section{Problem Statement}
+	
+	\subsection{Objective:}
+	This project aims to build neural network models for song popularity prediction based on a comprehensive set of music characteristics.
+	
+	\subsection{Model Specifications:}
+	\begin{enumerate}
+		\item \textbf{ANN Specification 1}
+		\begin{itemize}
+			\item No of hidden layers: 1
+			\item No. of neurons in hidden layer: 32
+			\item Activation function in the hidden layer: Sigmoid
+			\item 1 neuron in the output layer.
+			\item Activation function in the output layer: Linear
+			\item Optimization algorithm: Mini Batch Stochastic Gradient Descent (SGD)
+			\item Loss function: Mean Squared Error (MSE)
+			\item Learning rate: 0.01
+			\item No. of epochs = 200
+		\end{itemize}
+		\item \textbf{ANN Specification 2}
+		\begin{itemize}
+			\item No of hidden layers: 2
+			\item No. of neurons in the 1st hidden layer: 64
+			\item No. of neurons in the 2nd hidden layer: 32
+			\item Activation function in both the hidden layers: ReLU
+			\item 1 neuron in the output layer.
+			\item Activation function in the output layer: Linear
+			\item Optimization algorithm: Mini Batch Stochastic Gradient Descent (SGD)
+			\item Loss function: Mean Squared Error (MSE)
+			\item Learning rate: 0.01
+			\item No. of epochs = 200
+		\end{itemize}
+	\end{enumerate}
+	
+	\section{Modules}
+	
+	\subsection{Preprocess}
+	\textbf{Purpose:} Preprocesses the input dataset by dropping duplicates, normalizing the data, and splitting it into training and testing datasets. 
+	
+	\subsection{DataLoader}
+	\textbf{Purpose:} Loads the training and testing datasets and splits them into batches of size 32 for efficient training.
+	
+	\subsection{WeightInitialiser}
+	\textbf{Purpose:} Initializes the weights of the dense layers in the neural network. It generates random weights within a specified range.
+	
+	\subsection{BiasInitialiser}
+	\textbf{Purpose:} Initializes the biases of the dense layers in the neural network. It initializes biases for each layer to zero.
+	
+	\subsection{ForwardPass}
+	\textbf{Purpose:} Performs the forward pass of the neural network. It calculates the outputs of each layer using the given input data and weights.
+	
+	\subsection{BackPropagation}
+	\textbf{Purpose:} Performs the backward propagation of the neural network. It updates the weights and biases of the network based on the calculated gradients.
+	
+	\subsection{Training}
+	\textbf{Purpose:} Trains the neural network by iterating over epochs. It utilizes forward pass and backpropagation to update model parameters and computes accuracy for each epoch.
+	
+	\subsection{Predict}
+	\textbf{Purpose:} Predicts the labels for the training and testing datasets using the trained neural network model. It utilizes forward pass to obtain predictions.
+	
+	\subsection{curAccu}
+	\textbf{Purpose:} Calculates the accuracy of the model by comparing predicted labels with the ground truth labels.
+	
+	\subsection{BatchSplit}
+	\textbf{Purpose:} Splits the dataset into batches of size 32 to facilitate mini-batch training.
+	
+	\subsection{gradSig}
+	\textbf{Purpose:} Calculates the gradient of the sigmoid function. It's used in backpropagation for layers with sigmoid activation.
+	
+	\subsection{sig}
+	\textbf{Purpose:} Calculates the sigmoid function. It's used as the activation function for the hidden layers.
+	
+	\subsection{reluDerivative}
+	\textbf{Purpose:} Calculates the gradient of the ReLU function. It's used in backpropagation for layers with ReLU activation.
+	
+	\subsection{relu}
+	\textbf{Purpose:} Calculates the ReLU function. It's used as the activation function for the hidden layers.
+	
+	\section{}
+	
+\end{document}
