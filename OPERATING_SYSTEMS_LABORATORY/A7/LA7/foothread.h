@@ -13,7 +13,7 @@
 // Include the necessary header files
 #include <sys/types.h>
 // Define the necessary constants
-#define FOOTHREAD_THREADS_MAX 1000
+#define FOOTHREAD_THREADS_MAX 10000
 #define FOOTHREAD_DEFAULT_STACK_SIZE 2097152
 #define FOOTHREAD_JOINABLE 1
 #define FOOTHREAD_DETACHED 2

@@ -63,7 +63,8 @@ int nodes(void *arg)
             foothread_barrier_wait(&barrier);              // Wait for the barrier for all nodes to finish
             foothread_barrier_wait(&thread_barrier[node]); // Wait for the barrier for the children to finish
             foothread_mutex_lock(&write_mutex);
-            printf("Sum at root (node %2d) = %d\n", node, partial_sums[node]); // Print the sum at the root node
+            printf("Internal node %2d gets the partial sum %d from its children\n", node, partial_sums[node]); // Print the partial sum of the node
+            printf("Sum at root (node %2d) = %d\n", node, partial_sums[node]);                                 // Print the sum at the root node
             foothread_mutex_unlock(&write_mutex);
         }
     }

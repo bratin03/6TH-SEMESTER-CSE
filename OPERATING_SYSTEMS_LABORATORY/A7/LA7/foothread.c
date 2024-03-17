@@ -209,11 +209,6 @@ Return Description: This function locks the mutex.
 */
 void foothread_mutex_lock(foothread_mutex_t *mutex)
 {
-    if (mutex->is_locked == 1 && mutex->owner == gettid())
-    {
-        errno = EDEADLK;
-        return;
-    }
     Down(mutex->sem);
     mutex->is_locked = 1;
     mutex->owner = gettid();
