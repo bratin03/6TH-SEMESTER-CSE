@@ -159,7 +159,7 @@ void foothread_exit()
     }
 }
 /*
-Function Name: foothread_join
+Function Name: foothread_attr_setjointype
 Function Arguments:
     1. foothread_t *thread: The thread id of the thread.
 Return Type: void
@@ -232,12 +232,11 @@ void foothread_mutex_unlock(foothread_mutex_t *mutex)
     Up(mutex->sem);
 }
 /*
-Function Name: foothread_barrier_init
+Function Name: foothread_mutex_destroy
 Function Arguments:
-    1. foothread_barrier_t *barrier: The barrier to be initialized.
-    2. int count: The count of the barrier.
+    1. foothread_mutex_t *mutex
 Return Type: void
-Return Description: This function initializes the barrier.
+Return Description: This function destroys the mutex.
 */
 void foothread_mutex_destroy(foothread_mutex_t *mutex)
 {
