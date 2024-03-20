@@ -13,3 +13,7 @@ will give error.
 - 6. Open file descriptors are shared if declared globally
 - 7. In case you join on a thread with `pthread_join(pt, &res_t)` but the thread doesn't return anything, the call will succed but accesing `res_t` will cause segmentation fault
 - 8. On call of `pthread_cond_siganl`, the thread must lock the mutex after getting signal on condition variable even if it didn't lock the mutex before the call
+
+### fork
+- 1. For parent and children check if they are also executing after the if statement.
+- 2. 
