@@ -608,7 +608,6 @@ int main()
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
     SI->sock_id = 0;
-    SI->to_close = 0;
     key_t key_table_lock = ftok("/usr/bin", 3);
     table_lock = semget(key_table_lock, 1, 0666 | IPC_CREAT);
     semctl(table_lock, 0, SETVAL, 1);
@@ -652,79 +651,8 @@ int main()
     while (1)
     {
         Down(sem_1);
-
         Down(sock_info_lock);
-        if (SI->to_close == 1)
-        {
-#ifdef DLOG
-            grey();
-            printf("Init: Close request received for table entry %d\n", SI->sock_id);
-            reset();
-#endif
-            int index = SI->sock_id;
-            if (SM[index].is_available == 1)
-            {
-                SI->errorno = EBADF;
-                SI->sock_id = -1;
-                Up(sem_2);
-                Up(sock_info_lock);
-                continue;
-            }
-            if (m_close_requested[index] == 1)
-            {
-                SI->errorno = EBADF;
-                SI->sock_id = -1;
-                Up(sem_2);
-                Up(sock_info_lock);
-                continue;
-            }
-
-            Down(table_lock);
-            int to_send = 0;
-            for (int i = 0; i < SEND_BUFF_SIZE; i++)
-            {
-                if (SM[index].send_window.buffer_is_valid[i] != 0)
-                {
-                    to_send = 1;
-                    m_close_retry_count[index]++;
-                    break;
-                }
-            }
-            if (to_send == 0)
-            {
-                SM[index].is_available = 1;
-                int ret = close(SM[index].src_sock);
-                if (ret == -1)
-                {
-                    SI->errorno = errno;
-                    SI->sock_id = -1;
-                    Up(sem_2);
-                    Up(sock_info_lock);
-                    continue;
-                }
-#ifdef DLOG
-                green();
-                printf("Init: Closed socket for table entry %d\n", index);
-                reset();
-#endif
-            }
-            else
-            {
-#ifdef DLOG
-                red();
-                printf("Init: Close request marked for table entry %d. Closing after sending all packets\n", index);
-                reset();
-#endif
-                m_close_requested[index] = 1;
-            }
-            Up(table_lock);
-            SI->errorno = 0;
-            SI->sock_id = 0;
-            Up(sem_2);
-            Up(sock_info_lock);
-            continue;
-        }
-        else if (SI->port == 0 && SI->sock_id == 0)
+        if (SI->port == 0 && SI->sock_id == 0)
         {
 #ifdef DLOG
             grey();
@@ -741,7 +669,6 @@ int main()
                 printf("Init: Socket creation failed\n");
                 reset();
 #endif
-
                 Up(sem_2);
                 Up(sock_info_lock);
                 continue;
@@ -776,7 +703,6 @@ int main()
                 printf("Init: Bind failed for table entry %d\n", SI->sock_id);
                 reset();
 #endif
-
                 Up(sem_2);
                 Up(sock_info_lock);
                 continue;

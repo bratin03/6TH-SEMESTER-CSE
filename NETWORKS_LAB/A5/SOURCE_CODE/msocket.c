@@ -32,8 +32,14 @@ void reset_sock_info(struct SOCK_INFO *SI)
     SI->errorno = 0;
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
-    SI->to_close = 0;
 }
+
+/*
+function_name: m_socket
+function_prototype: int m_socket(int domain, int type, int protocol);
+input_params: int domain, int type, int protocol
+return: int
+*/
 
 int m_socket(int domain, int type, int protocol)
 {
@@ -50,6 +56,7 @@ int m_socket(int domain, int type, int protocol)
         return -1;
     }
 
+    // No other protocol is supported
     if (protocol != 0)
     {
         errno = EINVAL;
@@ -103,7 +110,6 @@ int m_socket(int domain, int type, int protocol)
     SI->errorno = 0;
     inet_aton("0.0.0.0", &SI->IP);
     SI->port = 0;
-    SI->to_close = 0;
     Up(sem_1);
     Up(sock_info_lock);
     Down(sem_2);
@@ -152,8 +158,17 @@ int m_socket(int domain, int type, int protocol)
     }
     SM[free_space].send_window.last_buf_index = 0;
     Up(sem_row);
+    shmdt(SM);
+    shmdt(SI);
     return free_space;
 }
+
+/*
+function_name: m_bind
+function_prototype: int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1);
+input_params: int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1
+return: int
+*/
 
 int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1)
 {
@@ -195,7 +210,6 @@ int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const
     SI->errorno = 0;
     SI->IP = ((struct sockaddr_in *)src_addr)->sin_addr;
     SI->port = ((struct sockaddr_in *)src_addr)->sin_port;
-
     Up(sock_info_lock);
     Up(sem_1);
     Down(sem_2);
@@ -214,9 +228,17 @@ int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const
     SM[sockfd].dest_ip = ((struct sockaddr_in *)dest_addr)->sin_addr;
     SM[sockfd].dest_port = ((struct sockaddr_in *)dest_addr)->sin_port;
     Up(sem_row);
+    shmdt(SM);
+    shmdt(SI);
     return 0;
 }
 
+/*
+function_name: m_sendto
+function_prototype: int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+input_params: int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen
+return: int
+*/
 int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
 {
     if (flags != 0)
@@ -271,6 +293,7 @@ int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct so
     strcpy(SM[sockfd].send_buff[next_buf_index], (char *)buf);
     SM[sockfd].send_window.last_buf_index = next_buf_index;
     Up(sem_row);
+    shmdt(SM);
     return len;
 }
 
@@ -312,7 +335,6 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     SM[sockfd].receive_window.to_deliver = (SM[sockfd].receive_window.to_deliver + 1) % RECV_BUFF_SIZE;
     for (int j = 0; j < RECV_BUFF_SIZE; j++)
     {
-
         SM[sockfd].receive_window.seq_buf_index_map[(SM[sockfd].receive_window.last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[sockfd].receive_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet] + j + 1) % RECV_BUFF_SIZE;
     }
     if (SM[sockfd].receive_window.nospace == 1)
@@ -325,6 +347,7 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     src_addr_in->sin_port = SM[sockfd].dest_port;
     src_addr_in->sin_addr = SM[sockfd].dest_ip;
     *addrlen = sizeof(struct sockaddr_in);
+    shmdt(SM);
     return len;
 }
 
@@ -335,40 +358,23 @@ int m_close(int fd)
         errno = EBADF;
         return -1;
     }
-    key_t key_1 = ftok("/usr/bin", 2);
-    int shmid_1 = shmget(key_1, sizeof(struct SOCK_INFO), 0666 | IPC_CREAT);
-    struct SOCK_INFO *SI = (struct SOCK_INFO *)shmat(shmid_1, (void *)0, 0);
-
+    key_t key_ = ftok("/usr/bin", 1);
+    int shmid = shmget(key_, N * sizeof(struct shared_memory), 0666 | IPC_CREAT);
+    struct shared_memory *SM = (struct shared_memory *)shmat(shmid, (void *)0, 0);
+    key_t key_sem_row = ftok("/usr/bin", 7 + fd);
+    int sem_row = semget(key_sem_row, 1, 0666 | IPC_CREAT);
     pop.sem_num = vop.sem_num = 0;
     pop.sem_flg = vop.sem_flg = 0;
     pop.sem_op = -1;
     vop.sem_op = 1;
-
-    key_t key_sem_1 = ftok("/usr/bin", 4);
-    int sem_1 = semget(key_sem_1, 1, 0666 | IPC_CREAT);
-    key_t key_sem_2 = ftok("/usr/bin", 5);
-    int sem_2 = semget(key_sem_2, 1, 0666 | IPC_CREAT);
-    key_t key_sock_info_lock = ftok("/usr/bin", 6);
-    int sock_info_lock = semget(key_sock_info_lock, 1, 0666 | IPC_CREAT);
-
-    Down(sock_info_lock);
-    SI->sock_id = fd;
-    SI->errorno = 0;
-    SI->to_close = 1;
-    Up(sem_1);
-    Up(sock_info_lock);
-    Down(sem_2);
-    Down(sock_info_lock);
-    int udp_fd = SI->sock_id;
-    if (udp_fd < 0)
-    {
-        errno = SI->errorno;
-        reset_sock_info(SI);
-        Up(sock_info_lock);
-        return -1;
-    }
-    reset_sock_info(SI);
-    Up(sock_info_lock);
+    Down(sem_row);
+    SM[fd].is_available = 1;
+    SM[fd].pid = 0;
+    SM[fd].src_sock = 0;
+    SM[fd].dest_port = 0;
+    inet_aton("0.0.0.0", &SM[fd].dest_ip);
+    Up(sem_row);
+    shmdt(SM);
     return 0;
 }
 
