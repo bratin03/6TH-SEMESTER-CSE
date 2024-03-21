@@ -80,8 +80,6 @@ struct SOCK_INFO *SI;
 int table_lock, sem_1, sem_2, sock_info_lock;
 int sem_row[N];
 struct sembuf pop, vop;
-int m_close_requested[N] = {0};
-int m_close_retry_count[N] = {0};
 
 void sigchld_handler(int signo)
 {
@@ -199,81 +197,24 @@ void *Garbage_Collector()
             if (SM[i].is_available == 0)
             {
                 Down(sem_row[i]);
-                if (m_close_requested[i] == 1)
-                {
-                    int to_send = 0;
-                    for (int k = 0; k < SEND_BUFF_SIZE; k++)
-                    {
-                        if (SM[i].send_window.buffer_is_valid[k] != 0)
-                        {
-                            to_send = 1;
-                            m_close_retry_count[i]++;
-                            break;
-                        }
-                    }
-                    if (to_send == 0 || m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
-                    {
-                        SM[i].is_available = 1;
-                        m_close_requested[i] = 0;
-                        if (close(SM[i].src_sock) == -1)
-                        {
-                            perror("close");
-                            exit(EXIT_FAILURE);
-                        }
-#ifdef DLOG
-                        red();
-                        printf("Garbage Collector: Closed socket %d\n", i);
-                        if (m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
-                        {
-                            printf("Garbage Collector: Max tries after close reached for table entry %d\n", i);
-                        }
-                        reset();
-#endif
-                        m_close_retry_count[i] = 0;
-                    }
-                    Up(sem_row[i]);
-                    continue;
-                }
+
                 if (kill(SM[i].pid, 0) == -1)
                 {
                     if (errno == ESRCH)
                     {
-                        int to_send = 0;
-                        for (int k = 0; k < SEND_BUFF_SIZE; k++)
-                        {
-                            if (SM[i].send_window.buffer_is_valid[k] != 0)
-                            {
-                                to_send = 1;
-                                m_close_retry_count[i]++;
-                                break;
-                            }
-                        }
-                        if (to_send == 0 || m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
-                        {
-                            SM[i].is_available = 1;
-                            if (m_close_requested[i] == 1)
-                            {
-                                m_close_requested[i] = 0;
-                            }
-                            if (close(SM[i].src_sock) == -1)
-                            {
-                                perror("close");
-                                exit(EXIT_FAILURE);
-                            }
 #ifdef DLOG
-                            red();
-                            printf("Garbage Collector: Closed socket %d\n", i);
-                            if (m_close_retry_count[i] > MAX_TRIES_AFTER_CLOSE)
-                            {
-                                printf("Garbage Collector: Max tries after close reached for table entry %d\n", i);
-                            }
-                            reset();
+                        red();
+                        printf("Garbage Collector: Process %d for table entry %d is dead\n", SM[i].pid, i);
+                        reset();
 #endif
-                            m_close_retry_count[i] = 0;
-                        }
+                        SM[i].is_available = 1;
+                        SM[i].pid = 0;
+                        SM[i].src_sock = 0;
+                        inet_aton("0.0.0.0", &SM[i].dest_ip);
                     }
                     else
                     {
+                        Up(sem_row[i]);
                         perror("kill");
                         exit(EXIT_FAILURE);
                     }
@@ -535,7 +476,7 @@ void *R_Thread()
 
 void *S_Thread()
 {
-    int sleep_time = floor(T / 2);
+    int sleep_time = (T / 2 - (1 - T % 2));
     while (1)
     {
         for (int i = 0; i < N; i++)
@@ -555,7 +496,7 @@ void *S_Thread()
                     }
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 2)
                     {
-                        if ((time(NULL) - SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]) > T)
+                        if (difftime(time(NULL), SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]) > T)
                         {
 #ifdef DLOG
                             pink();
@@ -579,7 +520,6 @@ void *S_Thread()
                         SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM] = time(NULL);
                     }
                     SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] = 2;
-
                     send_msg(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, (next_to_send + j) % MAX_SEQ_NUM, SM[i].send_buff[(next_to_send_index + j) % SEND_BUFF_SIZE]);
                 }
                 Up(table_lock);

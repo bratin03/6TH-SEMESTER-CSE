@@ -83,13 +83,15 @@ int main()
                 fclose(fp);
                 break;
             }
-            fprintf(fp, "%s", recv_buf);
+            if (fprintf(fp, "%s", recv_buf) < 0)
+            {
+                perror("fprintf");
+                exit(EXIT_FAILURE);
+            }
         }
     }
-    if (m_close(fd) < 0)
+    while (1)
     {
-        perror("m_close");
-        exit(EXIT_SUCCESS);
     }
     exit(EXIT_FAILURE);
 }

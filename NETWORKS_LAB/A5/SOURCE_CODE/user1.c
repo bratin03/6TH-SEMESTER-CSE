@@ -103,7 +103,7 @@ int main()
             printf("Sent: %s\n", buf);
             count++;
         }
-        if (count > 1000)
+        if (count > 10)
         {
             break;
         }
@@ -134,10 +134,8 @@ int main()
             break;
         }
     }
-    if (m_close(fd) < 0)
+    while (1)
     {
-        perror("m_close");
-        exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
 #else
