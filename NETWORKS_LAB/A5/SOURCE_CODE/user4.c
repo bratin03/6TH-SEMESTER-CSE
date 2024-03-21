@@ -23,7 +23,7 @@ User 2 receives messages from user1 and writes to a file
 
 #define VERBOSE
 #define WAIT_TIME 1
-#define OUTPUT_FILE "output1.txt"
+#define OUTPUT_FILE "output2.txt"
 int main()
 {
 
@@ -40,10 +40,10 @@ int main()
     printf("Socket created successfully\n");
     struct sockaddr_in src_addr, dest_addr;
     src_addr.sin_family = AF_INET;
-    src_addr.sin_port = htons(8080);
+    src_addr.sin_port = htons(9080);
     src_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(8081);
+    dest_addr.sin_port = htons(9081);
     dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     int ret = m_bind(fd, (struct sockaddr *)&src_addr, sizeof(src_addr), (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (ret == -1)

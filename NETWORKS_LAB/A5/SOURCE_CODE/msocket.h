@@ -27,7 +27,6 @@
 #define N 25
 #define SOCK_MTP 689
 #define P 0.2
-#define MAX_TRIES_AFTER_CLOSE 8
 
 extern struct sembuf pop, vop;
 

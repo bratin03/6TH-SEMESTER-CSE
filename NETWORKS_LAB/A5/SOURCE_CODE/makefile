@@ -18,7 +18,7 @@
 
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -pthread
-TARGETS = initmsocket user1 user2
+TARGETS = initmsocket user1 user2 user3 user4 user5 user6 user7 user8
 LIBRARY = libsocket.a
 LIBRARY_OBJS = msocket.o
 
@@ -35,6 +35,24 @@ user1: user1.c $(LIBRARY)
 
 user2: user2.c $(LIBRARY)
 	$(CC) $(CFLAGS) -o $@ user2.c -L. -lsocket
+
+user3: user3.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user3.c -L. -lsocket
+
+user4: user4.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user4.c -L. -lsocket
+
+user5: user5.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user5.c -L. -lsocket
+
+user6: user6.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user6.c -L. -lsocket
+
+user7: user7.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user7.c -L. -lsocket
+
+user8: user8.c $(LIBRARY)
+	$(CC) $(CFLAGS) -o $@ user8.c -L. -lsocket
 
 .PHONY: clean
 

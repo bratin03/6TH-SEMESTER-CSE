@@ -290,7 +290,10 @@ int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct so
         return -1;
     }
     SM[sockfd].send_window.buffer_is_valid[next_buf_index] = 1;
-    strcpy(SM[sockfd].send_buff[next_buf_index], (char *)buf);
+    for (int i = 0; i < MSG_SIZE; i++)
+    {
+        SM[sockfd].send_buff[next_buf_index][i] = ((char *)buf)[i];
+    }
     SM[sockfd].send_window.last_buf_index = next_buf_index;
     Up(sem_row);
     shmdt(SM);
@@ -330,10 +333,16 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
         errno = ENOMSG;
         return -1;
     }
-    strcpy((char *)buf, SM[sockfd].recv_buff[next_buf_index]);
+    for (int i = 0; i < MSG_SIZE; i++)
+    {
+        ((char *)buf)[i] = SM[sockfd].recv_buff[next_buf_index][i];
+    }
     SM[sockfd].receive_window.buffer_is_valid[next_buf_index] = 0;
     SM[sockfd].receive_window.to_deliver = (SM[sockfd].receive_window.to_deliver + 1) % RECV_BUFF_SIZE;
-    SM[sockfd].receive_window.window_size++;
+    if (SM[sockfd].receive_window.window_size < 5)
+    {
+        SM[sockfd].receive_window.window_size++;
+    }
     for (int j = 0; j < RECV_BUFF_SIZE; j++)
     {
         SM[sockfd].receive_window.seq_buf_index_map[(SM[sockfd].receive_window.last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[sockfd].receive_window.seq_buf_index_map[SM[sockfd].receive_window.last_inorder_packet] + j + 1) % RECV_BUFF_SIZE;
@@ -382,7 +391,7 @@ int m_close(int fd)
 int dropMessage(float p)
 {
 
-    float r = (float)rand() / (float)RAND_MAX;
+    float r = ((float)rand() / (float)RAND_MAX);
     if (r <= p)
     {
         return 1;
