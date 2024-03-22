@@ -28,10 +28,40 @@
 
 #define ACK_SIZE 10
 #define SP_MSG_SIZE 2
+
 // Define DLOG to enable the server logs
 #define DLOG
+// Define DSTAT to enable the statistics on exit
 #define DSTAT
 
+/*
+Header Design:
+
+Data Message:
+    0 0 SeqNum(4) Message(1024)
+    - This format is used to send data messages
+
+Ack Message:
+    1 0 SeqNum(4) WindowSize(4)
+    - This format is used to send acks
+
+Special Ack Message:
+    1 1 seqNum(4) WindowSize(4)
+    - This is a special ack message to indicate that earlier the window was full but now it is not and the sender can send more messages
+    - The second bit is set to 1 to indicate that this is a special ack message
+    - The sender is supposed to send more messages after receiving this ack if he has any
+    - Otherwise if the sender does not have any more messages to send, he should reply with a special message to the receiver to indicate that he has successfully received the information of buffer space availability
+    - Until the sender either sends a special message or a data message, the receiver will keep on sending special ack messages to indicate buffer space availability
+
+Special Message:
+    0 1
+    - This is a special message to reply against special ack messages to indicate that the sender has successfully received the information of buffer space availability but currently does not have any more messages to send
+    - On receiving ack indicating buffer space availability on the receiver side, the sender should either send this message or a data message to the receiver
+
+    Note: In this header format we have actually used one total byte to indicate one bit of header information. This is not the most efficient way to do it but it is done to keep the implementation simple and easy to understand with better representation of the header information.
+*/
+
+// Functions for logging in color
 #ifdef DLOG
 void red()
 {
@@ -74,6 +104,7 @@ void reset()
 }
 #endif
 
+// Semaphore operations
 #define Down(s) semop(s, &pop, 1)
 #define Up(s) semop(s, &vop, 1)
 
@@ -85,7 +116,13 @@ int sem_row[N];
 struct sembuf pop, vop;
 int msg_count = 0, msg_send_count = 0, ack_count = 0;
 
-void sigchld_handler(int signo)
+/**
+ * @brief Signal handler function that handles SIGQUIT and SIGINT signals.
+ *        Clears shared memory and exits the program.
+ *
+ * @param signo The signal number.
+ */
+void sig_handler(int signo)
 {
     if (signo == SIGQUIT || signo == SIGINT)
     {
@@ -115,6 +152,13 @@ void sigchld_handler(int signo)
 #endif
 
 #ifdef DSTAT
+        printf("\n\nStatistics:\n");
+        printf("Value of P: %lf\n", P);
+        if (msg_count == 0)
+        {
+            printf("No messages sent\n");
+            exit(EXIT_SUCCESS);
+        }
         double avg_msg = ((double)msg_send_count / (double)msg_count);
         double avg_ack = ((double)ack_count / (double)msg_count);
         for (int i = 0; i < 40; i++)
@@ -139,33 +183,50 @@ void sigchld_handler(int signo)
     }
 }
 
+/**
+ * Converts a decimal number to a binary representation.
+ *
+ * @param decimal The decimal number to convert.
+ * @param buffer The buffer to store the binary representation.
+ */
 void decimal_to_binary(int decimal, char *buffer)
 {
     int mask = 1 << 3;
 
     for (int i = 0; i < 4; i++)
     {
-
         int bit = (decimal & mask) ? 1 : 0;
-
         buffer[i] = bit + '0';
-
         mask >>= 1;
     }
 }
 
+/**
+ * Sends an acknowledgment packet over a socket.
+ *
+ * @param sock The socket descriptor.
+ * @param dest_ip The destination IP address.
+ * @param dest_port The destination port number.
+ * @param seq_num The sequence number of the acknowledgment.
+ * @param window_size The window size of the acknowledgment.
+ * @param ack_type The type of the acknowledgment.
+ */
 void send_ack(int sock, struct in_addr dest_ip, int dest_port, int seq_num, int window_size, int ack_type)
 {
+
     ack_count++;
+
     char ack[ACK_SIZE];
     ack[0] = '1';
     ack[1] = '0' + ack_type;
     decimal_to_binary(seq_num, ack + 2);
     decimal_to_binary(window_size, ack + 6);
+
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = dest_port;
     dest_addr.sin_addr = dest_ip;
+
     int ret = sendto(sock, ack, ACK_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (ret == -1)
     {
@@ -179,6 +240,15 @@ void send_ack(int sock, struct in_addr dest_ip, int dest_port, int seq_num, int 
 #endif
 }
 
+/**
+ * Sends a message over a socket to a specified destination IP and port.
+ *
+ * @param sock The socket descriptor.
+ * @param dest_ip The destination IP address.
+ * @param dest_port The destination port number.
+ * @param seq_num The sequence number of the message.
+ * @param msg The message to be sent.
+ */
 void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char *msg)
 {
     msg_send_count++;
@@ -207,6 +277,13 @@ void send_msg(int sock, struct in_addr dest_ip, int dest_port, int seq_num, char
 #endif
 }
 
+/**
+ * Sends an empty message (01) to the specified destination IP and port using the given socket.
+ *
+ * @param sock The socket to send the message from.
+ * @param dest_ip The destination IP address.
+ * @param dest_port The destination port number.
+ */
 void send_empty_msg(int sock, struct in_addr dest_ip, int dest_port)
 {
     msg_send_count++;
@@ -230,6 +307,13 @@ void send_empty_msg(int sock, struct in_addr dest_ip, int dest_port)
 #endif
 }
 
+/**
+ * Converts a binary string to its decimal equivalent.
+ *
+ * @param binary The binary string to be converted.
+ * @param size The size of the binary string.
+ * @return The decimal equivalent of the binary string.
+ */
 int binary_to_decimal(char *binary, int size)
 {
     int decimal = 0;
@@ -245,6 +329,15 @@ int binary_to_decimal(char *binary, int size)
     return decimal;
 }
 
+/**
+
+ * This function continuously checks the status of each table entry in the SM array.
+ * If a process is found to be dead, it marks the corresponding table entry as available,
+ * closes the source socket, and resets the destination IP address.
+ * If an error occurs while checking the process status or closing the socket, the function exits with failure.
+ *
+ * @return void
+ */
 void *Garbage_Collector()
 {
     while (1)
@@ -259,11 +352,13 @@ void *Garbage_Collector()
                 {
                     if (errno == ESRCH)
                     {
+                        // Process is dead
 #ifdef DLOG
                         red();
                         printf("Garbage Collector: Process %d for table entry %d is dead\n", SM[i].pid, i);
                         reset();
 #endif
+                        // Mark the table entry as available and reset the destination IP address
                         SM[i].is_available = 1;
                         SM[i].pid = 0;
                         close(SM[i].src_sock);
@@ -280,29 +375,40 @@ void *Garbage_Collector()
                 Up(sem_row[i]);
             }
         }
+        // Sleep for some time before checking again
         sleep(2 * T);
     }
 }
 
+/**
+ * The R_Thread function is responsible for handling incoming packets from multiple sockets.
+ * It uses the select system call to monitor the sockets for incoming data.
+ * When a packet is received, it processes the packet and updates the receive window for the corresponding socket.
+ * If the receive window becomes full, it sends an acknowledgment indicating that there is no space available.
+ * If the receive window has space available, it sends an acknowledgment indicating the last in-order packet received and the current window size.
+ * The R_Thread function runs in an infinite loop, continuously monitoring the sockets for incoming packets.
+ */
+
 void *R_Thread()
 {
+    // Declare the fd_set and timeval structures
     fd_set readfds;
     struct timeval tv;
     int max_fd = 0;
 
-    int prev_empty[N] = {0};
+    int prev_empty[N] = {0}; // Array to keep track of whether the receive window was full in the previous iteration
     while (1)
     {
         max_fd = 0;
         FD_ZERO(&readfds);
-        tv.tv_sec = T / 2 - (1 - T % 2);
+        tv.tv_sec = T / 2 - (1 - T % 2); // TIme to wait for select
         tv.tv_usec = 0;
         Down(table_lock);
         for (int i = 0; i < N; i++)
         {
             if (SM[i].is_available == 0)
             {
-                FD_SET(SM[i].src_sock, &readfds);
+                FD_SET(SM[i].src_sock, &readfds); // Add the socket to the fd_set if it is currently in use
                 if (SM[i].src_sock > max_fd)
                 {
                     max_fd = SM[i].src_sock;
@@ -310,7 +416,7 @@ void *R_Thread()
             }
         }
         Up(table_lock);
-        int ret = select(max_fd + 1, &readfds, NULL, NULL, &tv);
+        int ret = select(max_fd + 1, &readfds, NULL, NULL, &tv); // Wait for incoming data on the sockets
         if (ret == -1)
         {
             perror("select");
@@ -318,6 +424,9 @@ void *R_Thread()
         }
         if (ret == 0)
         {
+            // Timeout
+            // Check for each table entry if the receive window was full and now has space available
+            // If the receive window has space available, send an acknowledgment indicating the last in-order packet received and the current window size
             for (int i = 0; i < N; i++)
             {
                 if (prev_empty[i] == 1 && SM[i].is_available == 0 && SM[i].receive_window.nospace == 0)
@@ -326,6 +435,7 @@ void *R_Thread()
                     Down(sem_row[i]);
                     int current_window_size = 0;
                     int last_inorder_packet = SM[i].receive_window.last_inorder_packet;
+                    // Calculate the current window size by checking the number of packets that are in-order and have been received but not yet delivered to the application user
                     for (int j = 0; j < RECV_BUFF_SIZE; j++)
                     {
                         if (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j) % MAX_SEQ_NUM]] == 1)
@@ -340,6 +450,7 @@ void *R_Thread()
                     {
                         SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + j + 1) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + (j + 1)) % RECV_BUFF_SIZE;
                     }
+                    // Send a special acknowledgment indicating that the window was full but now has space available
                     send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size, 1);
 #ifdef DLOG
                     green();
@@ -356,7 +467,7 @@ void *R_Thread()
 
             if (SM[i].is_available == 0)
             {
-
+                // Check if the socket has incoming data
                 if (FD_ISSET(SM[i].src_sock, &readfds))
                 {
                     struct sockaddr_in src_addr;
@@ -374,6 +485,7 @@ void *R_Thread()
                         perror("recvfrom");
                         exit(EXIT_FAILURE);
                     }
+                    // Drop the packet with probability P
                     if (dropMessage(P))
                     {
 #ifdef DLOG
@@ -386,16 +498,18 @@ void *R_Thread()
 #ifdef DLOG
                     blue();
                     printf("R Thread: Packet Not Dropped for table entry %d with seq num %d\n", i, seq_num);
-                    printf("Content: %s\n", msg);
                     reset();
 #endif
                     char id_bit = msg[0];
+                    // If the first bit is 0, it is a data message
                     if (id_bit == '0')
                     {
                         char type_bit = msg[1];
                         if (type_bit == '1')
                         {
-                            // Empty Message
+                            // Special Message
+                            // Mark that the sender has received the information of buffer space availability
+                            // Stop sending special ack messages to the sender indicating buffer space availability
                             Down(sem_row[i]);
                             SM[i].receive_window.nospace = 0;
                             prev_empty[i] = 0;
@@ -413,12 +527,13 @@ void *R_Thread()
                             seq_num[i] = msg[i + 2];
                         }
                         seq_num[4] = '\0';
-                        int seq_num_int = binary_to_decimal(seq_num, 4);
+                        int seq_num_int = binary_to_decimal(seq_num, 4); // Convert the sequence number to an integer
                         Down(sem_row[i]);
                         int last_inorder_packet = SM[i].receive_window.last_inorder_packet;
                         int window_size = SM[i].receive_window.window_size;
                         int next_to_deliver = (last_inorder_packet + 1) % MAX_SEQ_NUM;
 
+                        // If the packet is already received, send an acknowledgment indicating the last in-order packet received and the current window size
                         if (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[seq_num_int]] == 1)
                         {
                             send_ack(SM[i].src_sock, src_addr.sin_addr, src_addr.sin_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size, 0);
@@ -426,9 +541,10 @@ void *R_Thread()
                             continue;
                         }
 
+                        // If the packet is in the receive window, process the packet
                         if (((seq_num_int - last_inorder_packet + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
-
+                            // If the packet is in the receive window and not received yet, store the message in the receive buffer
                             int buffer_index = SM[i].receive_window.seq_buf_index_map[seq_num_int];
                             if (SM[i].receive_window.buffer_is_valid[buffer_index] == 0 && seq_num_int != last_inorder_packet)
                             {
@@ -438,12 +554,14 @@ void *R_Thread()
                                 }
                                 SM[i].receive_window.buffer_is_valid[buffer_index] = 1;
                             }
+                            // If the sequence number is the expected sequence number, recalculate the window size and the last in-order packet
                             if (seq_num_int == next_to_deliver)
                             {
                                 for (int j = 0; j <= RECV_BUFF_SIZE; j++)
                                 {
                                     SM[i].receive_window.seq_buf_index_map[(next_to_deliver + j) % MAX_SEQ_NUM] = (SM[i].receive_window.seq_buf_index_map[next_to_deliver] + j) % RECV_BUFF_SIZE;
                                 }
+                                // First check if there is space available outside the window
                                 int buffer_index_outside_window = SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + window_size + 1) % MAX_SEQ_NUM];
                                 int outside_free_count = 0;
                                 for (int j = 0; j < RECV_BUFF_SIZE; j++)
@@ -464,19 +582,23 @@ void *R_Thread()
                                     }
                                 }
 
+                                // See in the current window how many packets have been received in-order
                                 last_inorder_packet = seq_num_int;
                                 while (SM[i].receive_window.buffer_is_valid[SM[i].receive_window.seq_buf_index_map[(last_inorder_packet + 1) % MAX_SEQ_NUM]] == 1 && (((last_inorder_packet + 1 - next_to_deliver + MAX_SEQ_NUM) % MAX_SEQ_NUM) < window_size))
                                 {
                                     last_inorder_packet = (last_inorder_packet + 1) % MAX_SEQ_NUM;
                                 }
+                                // Calculate the new window size based on what is the next expected packet
                                 int new_window_size = (buffer_index_outside_window - (SM[i].receive_window.seq_buf_index_map[last_inorder_packet] + 1) + RECV_BUFF_SIZE + outside_free_count) % RECV_BUFF_SIZE;
                                 SM[i].receive_window.last_inorder_packet = last_inorder_packet;
                                 SM[i].receive_window.window_size = new_window_size;
+                                // If the window size is 0, mark that there is no space available
                                 if (new_window_size == 0)
                                 {
                                     SM[i].receive_window.nospace = 1;
                                     prev_empty[i] = 1;
                                 }
+                                // If the window size is not 0, mark that there is space available
                                 else
                                 {
                                     prev_empty[i] = 0;
@@ -495,6 +617,7 @@ void *R_Thread()
                             send_ack(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port, SM[i].receive_window.last_inorder_packet, SM[i].receive_window.window_size, 0);
                             Up(sem_row[i]);
                         }
+                        // If no space is available in the receive buffer, send an acknowledgment indicating that there is no space available
                         else if (SM[i].receive_window.nospace == 1)
                         {
 #ifdef DLOG
@@ -514,7 +637,7 @@ void *R_Thread()
                     }
                     else if (id_bit == '1')
                     {
-                        // Ack
+                        // Acknowledgment Message
                         char seq_num[5];
                         strncpy(seq_num, msg + 2, 4);
                         for (int i = 0; i < 4; i++)
@@ -522,18 +645,19 @@ void *R_Thread()
                             seq_num[i] = msg[i + 2];
                         }
                         seq_num[4] = '\0';
-                        int ack_num = binary_to_decimal(seq_num, 4);
+                        int ack_num = binary_to_decimal(seq_num, 4); // Convert the sequence number to an integer
                         char window_size_update[5];
                         for (int i = 0; i < 4; i++)
                         {
                             window_size_update[i] = msg[i + 6];
                         }
                         window_size_update[4] = '\0';
-                        int new_window_size = binary_to_decimal(window_size_update, 4);
+                        int new_window_size = binary_to_decimal(window_size_update, 4); // Convert the window size to an integer
                         Down(sem_row[i]);
                         int last_seq_ack = SM[i].send_window.last_seq_ack;
                         int window_size = SM[i].send_window.window_size;
 
+                        // If the acknowledgment is within the window, update the window size and the last acknowledged packet
                         if (((ack_num - last_seq_ack + MAX_SEQ_NUM) % MAX_SEQ_NUM) <= window_size)
                         {
                             SM[i].send_window.last_seq_ack = ack_num;
@@ -562,6 +686,7 @@ void *R_Thread()
                         printf("Updated window size for table entry %d: %d and Next to send: %d\n", i, new_window_size, (ack_num + 1) % MAX_SEQ_NUM);
                         reset();
 #endif
+                        // If it is a special acknowledgment and sender has no data to send, transmit an empty message to indicate that the sender has received the information of buffer space availability
                         if (new_window_size > 0 && SM[i].send_window.buffer_is_valid[SM[i].send_window.seq_buf_index_map[(ack_num + 1) % MAX_SEQ_NUM]] == 0 && msg[1] == '1')
                         {
                             send_empty_msg(SM[i].src_sock, SM[i].dest_ip, SM[i].dest_port);
@@ -575,9 +700,16 @@ void *R_Thread()
     }
 }
 
+/**
+ * The S_Thread continuously checks each table entry in the send window and sends packets if they are available.
+ * It uses a sleep time to control the rate of sending packets.
+ * If a packet needs to be resent due to a timeout, it updates the timeout value and resends the packet.
+ *
+ * @return void
+ */
 void *S_Thread()
 {
-    int sleep_time = (T / 2 - (1 - T % 2));
+    int sleep_time = (T / 2 - (1 - T % 2)); // Sleep time to control the rate of sending packets
     while (1)
     {
         for (int i = 0; i < N; i++)
@@ -589,14 +721,17 @@ void *S_Thread()
                 int next_to_send_index = SM[i].send_window.seq_buf_index_map[next_to_send];
                 int window_size = SM[i].send_window.window_size;
 
+                // Send packets if they are available in the send window
                 for (int j = 0; j < window_size; j++)
                 {
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 0)
                     {
                         continue;
                     }
+                    // If the packet is already sent and not acknowledged, check if it is time to resend the packet
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 2)
                     {
+                        // If the time since the last transmission is greater than T, resend the packet
                         if (difftime(time(NULL), SM[i].send_window.timeout[(next_to_send + j) % MAX_SEQ_NUM]) > T)
                         {
 #ifdef DLOG
@@ -611,6 +746,7 @@ void *S_Thread()
                             continue;
                         }
                     }
+                    // If the packet is not sent yet, send the packet
                     if (SM[i].send_window.buffer_is_valid[(next_to_send_index + j) % SEND_BUFF_SIZE] == 1)
                     {
 #ifdef DLOG
@@ -626,10 +762,15 @@ void *S_Thread()
                 Up(sem_row[i]);
             }
         }
-        sleep(sleep_time);
+        sleep(sleep_time); // Sleep for some time before going to the next iteration
     }
 }
 
+/**
+ * The main function initializes the shared memory and semaphores.
+ * It creates the Garbage Collector, R_Thread, and S_Thread threads.
+ * It also handles the socket initialization and binding requests.
+ */
 int main()
 {
     srand(time(NULL) % getpid());
@@ -638,6 +779,7 @@ int main()
     pop.sem_op = -1;
     vop.sem_op = 1;
 
+    // Initialize the shared memory and semaphores
     key_t key_;
     key_ = ftok("/usr/bin", 1);
     shmid = shmget(key_, N * sizeof(struct shared_memory), 0666 | IPC_CREAT);
@@ -676,6 +818,7 @@ int main()
     Up(table_lock);
     pthread_t G, R, S;
 
+    // Create the Garbage Collector, R_Thread, and S_Thread threads
     pthread_create(&G, NULL, Garbage_Collector, NULL);
     pthread_create(&R, NULL, R_Thread, NULL);
     pthread_create(&S, NULL, S_Thread, NULL);
@@ -686,12 +829,14 @@ int main()
     reset();
 #endif
 
-    signal(SIGINT, sigchld_handler);
-    signal(SIGQUIT, sigchld_handler);
+    // Signal handlers for SIGQUIT and SIGINT
+    signal(SIGINT, sig_handler);
+    signal(SIGQUIT, sig_handler);
     while (1)
     {
         Down(sem_1);
         Down(sock_info_lock);
+        // m_socket request
         if (SI->port == 0 && SI->sock_id == 0)
         {
 #ifdef DLOG
@@ -722,6 +867,7 @@ int main()
             Up(sem_2);
             Up(sock_info_lock);
         }
+        // m_bind request
         else
         {
 #ifdef DLOG

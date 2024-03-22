@@ -10,8 +10,13 @@
         Department of Computer Science and Engineering,
         Indian Institute of Technology Kharagpur.
 ***********************************************************/
+
 /*
 User 2 receives messages from user1 and writes to a file
+*/
+
+/*
+Run with DVERBOSE defined to see sleep messages
 */
 
 #include "msocket.h"
@@ -20,12 +25,28 @@ User 2 receives messages from user1 and writes to a file
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
-#define VERBOSE
+// #define DVERBOSE
 #define WAIT_TIME 1
-#define OUTPUT_FILE "output1.txt"
+// Change here for any other file or IP address or port
+#define OUTPUT_FILE "output.txt"
+#define IP_1 "127.0.0.1"
+#define IP_2 "127.0.0.1"
+#define PORT_1 8081
+#define PORT_2 8080
+
+void signal_handler(int signum)
+{
+    printf("Signal %d received\n", signum);
+    printf("Exiting\n");
+    exit(EXIT_SUCCESS);
+}
+
 int main()
 {
+    signal(SIGINT, signal_handler);
+    signal(SIGQUIT, signal_handler);
 
     int domain = AF_INET;
     int type = SOCK_MTP;
@@ -40,11 +61,11 @@ int main()
     printf("Socket created successfully\n");
     struct sockaddr_in src_addr, dest_addr;
     src_addr.sin_family = AF_INET;
-    src_addr.sin_port = htons(8080);
-    src_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    src_addr.sin_port = htons(PORT_2);
+    src_addr.sin_addr.s_addr = inet_addr(IP_2);
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(8081);
-    dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    dest_addr.sin_port = htons(PORT_1);
+    dest_addr.sin_addr.s_addr = inet_addr(IP_1);
     int ret = m_bind(fd, (struct sockaddr *)&src_addr, sizeof(src_addr), (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (ret == -1)
     {
@@ -55,6 +76,7 @@ int main()
 
     char recv_buf[MSG_SIZE];
     FILE *fp = fopen(OUTPUT_FILE, "w");
+    int count = 1;
     while (1)
     {
         ret = m_recvfrom(fd, recv_buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, (socklen_t *)&dest_addr);
@@ -62,7 +84,7 @@ int main()
         {
             if (errno == ENOMSG)
             {
-#ifdef VERBOSE
+#ifdef DVERBOSE
                 printf("No data received. Sleeping for %d seconds\n", WAIT_TIME);
 #endif
                 sleep(WAIT_TIME);
@@ -82,7 +104,7 @@ int main()
                 print_buf[i] = recv_buf[i];
             }
             print_buf[MSG_SIZE] = '\0';
-            printf("Received: %s\n", print_buf);
+            printf("Received Message No: %d\n", count++);
             int isend = 1;
             for (int i = 0; i < MSG_SIZE; i++)
             {
@@ -94,7 +116,7 @@ int main()
             }
             if (isend)
             {
-#ifdef VERBOSE
+#ifdef DVERBOSE
                 printf("End of file\n");
 #endif
                 fclose(fp);
@@ -107,6 +129,7 @@ int main()
             }
         }
     }
+    printf("File written successfully\n");
     while (1)
     {
     }

@@ -17,6 +17,10 @@ User 1 sends messages to user2 from a file
 
 /*
 Run with DRANDOM defined to send random messages with sequence numbers
+Run without DRANDOM to send messages from a file
+
+Run with DVERBOSE defined to see sleep messages
+
 Also reduce the MSG_SIZE to smaller value (15) fr better I/O during testing with DRANDOM flag
 */
 
@@ -26,11 +30,25 @@ Also reduce the MSG_SIZE to smaller value (15) fr better I/O during testing with
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <signal.h>
 
-// #define VERBOSE
-#define DRANDOM
+// #define DVERBOSE
+// #define DRANDOM
 #define WAIT_TIME 1
+// Change here for any other file or IP address or port
 #define INPUT_FILE "input.txt"
+#define IP_1 "127.0.0.1"
+#define IP_2 "127.0.0.1"
+#define PORT_1 8081
+#define PORT_2 8080
+
+
+void signal_handler(int signum)
+{
+    printf("Signal %d received\n", signum);
+    printf("Exiting\n");
+    exit(EXIT_SUCCESS);
+}
 
 #ifdef DRANDOM
 int generate_message_of_length(char *buf, int len, int seq_num)
@@ -49,6 +67,9 @@ int generate_message_of_length(char *buf, int len, int seq_num)
 int main()
 {
 
+    signal(SIGINT, signal_handler);
+    signal(SIGQUIT, signal_handler);
+
     int domain = AF_INET;
     int type = SOCK_MTP;
 
@@ -62,11 +83,11 @@ int main()
     printf("Socket created successfully\n");
     struct sockaddr_in src_addr, dest_addr;
     src_addr.sin_family = AF_INET;
-    src_addr.sin_port = htons(8081);
-    src_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    src_addr.sin_port = htons(PORT_1);
+    src_addr.sin_addr.s_addr = inet_addr(IP_1);
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(8080);
-    dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    dest_addr.sin_port = htons(PORT_2);
+    dest_addr.sin_addr.s_addr = inet_addr(IP_2);
     int ret = m_bind(fd, (struct sockaddr *)&src_addr, sizeof(src_addr), (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (ret == -1)
     {
@@ -86,7 +107,7 @@ int main()
         {
             if (errno == ENOBUFS)
             {
-#ifdef VERBOSE
+#ifdef DVERBOSE
                 printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
 #endif
                 sleep(WAIT_TIME);
@@ -120,7 +141,7 @@ int main()
         {
             if (errno == ENOBUFS)
             {
-#ifdef VERBOSE
+#ifdef DVERBOSE
                 printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
 #endif
                 sleep(WAIT_TIME);
@@ -134,7 +155,7 @@ int main()
         }
         else
         {
-            // printf("Sent: %s\n", end);
+            printf("End Sent\n");
             break;
         }
     }
@@ -150,32 +171,41 @@ int main()
         perror("fopen");
         exit(EXIT_FAILURE);
     }
+    int count = 1;
     char buf[MSG_SIZE];
     while (fgets(buf, MSG_SIZE, fp) != NULL)
     {
-        ret = m_sendto(fd, buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-        if (ret == -1)
+        while (1)
         {
-            if (errno == ENOBUFS)
+            ret = m_sendto(fd, buf, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+            if (ret == -1)
             {
-#ifdef VERBOSE
-                printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
+                if (errno == ENOBUFS)
+                {
+#ifdef DVERBOSE
+                    printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
 #endif
-                sleep(WAIT_TIME);
-                continue;
+                }
+                else
+                {
+                    perror("m_sendto");
+                    exit(EXIT_FAILURE);
+                }
             }
             else
             {
-                perror("m_sendto");
-                exit(EXIT_FAILURE);
+                printf("Sent Message No: %d\n", count);
+                count++;
+                break;
             }
+            sleep(WAIT_TIME);
         }
-        else
-        {
-            printf("Sent: %s\n", buf);
-        }
-    };
-    char end[] = "$";
+    }
+    char end[MSG_SIZE];
+    for (int i = 0; i < MSG_SIZE; i++)
+    {
+        end[i] = '$';
+    }
     while (1)
     {
         ret = m_sendto(fd, end, MSG_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
@@ -183,11 +213,10 @@ int main()
         {
             if (errno == ENOBUFS)
             {
-#ifdef VERBOSE
+#ifdef DVERBOSE
                 printf("Buffer is currently Full. Sleeping for %d seconds\n", WAIT_TIME);
 #endif
                 sleep(WAIT_TIME);
-                continue;
             }
             else
             {
@@ -197,14 +226,13 @@ int main()
         }
         else
         {
-            printf("Sent: %s\n", end);
+            printf("End Sent\n");
             break;
         }
     }
-    if (m_close(fd) < 0)
+    fclose(fp);
+    while (1)
     {
-        perror("m_close");
-        exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
 #endif

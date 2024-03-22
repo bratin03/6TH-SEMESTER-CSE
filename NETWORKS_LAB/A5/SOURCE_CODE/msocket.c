@@ -23,9 +23,15 @@
 
 struct sembuf pop, vop;
 
-#define Down(s) semop(s, &pop, 1)
-#define Up(s) semop(s, &vop, 1)
+#define Down(s) semop(s, &pop, 1) // Macro to perform down operation on semaphore
+#define Up(s) semop(s, &vop, 1)   // Macro to perform up operation on semaphore
 
+/**
+ * This function resets the values of the given SOCK_INFO structure.
+ * It sets the socket ID, error number, IP address, and port to their default values.
+ *
+ * @param SI The pointer to the SOCK_INFO structure to be reset.
+ */
 void reset_sock_info(struct SOCK_INFO *SI)
 {
     SI->sock_id = 0;
@@ -34,13 +40,15 @@ void reset_sock_info(struct SOCK_INFO *SI)
     SI->port = 0;
 }
 
-/*
-function_name: m_socket
-function_prototype: int m_socket(int domain, int type, int protocol);
-input_params: int domain, int type, int protocol
-return: int
-*/
-
+/**
+ * Creates a new socket with the specified domain, type, and protocol.
+ *
+ * @param domain    The domain of the socket (must be AF_INET).
+ * @param type      The type of the socket (must be SOCK_MTP).
+ * @param protocol  The protocol of the socket (must be 0).
+ * @return          The index of the new socket in the table, or -1 if an error occurred.
+ *                  If an error occurred, the errno variable will be set to indicate the specific error.
+ */
 int m_socket(int domain, int type, int protocol)
 {
 
@@ -50,6 +58,7 @@ int m_socket(int domain, int type, int protocol)
         return -1;
     }
 
+    // Only SOCK_MTP is supported
     if (type != SOCK_MTP)
     {
         errno = EINVAL;
@@ -98,6 +107,7 @@ int m_socket(int domain, int type, int protocol)
 
     if (free_space == -1)
     {
+        // No free space available
         errno = ENOBUFS;
         return -1;
     }
@@ -163,13 +173,17 @@ int m_socket(int domain, int type, int protocol)
     return free_space;
 }
 
-/*
-function_name: m_bind
-function_prototype: int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1);
-input_params: int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1
-return: int
-*/
-
+/**
+ * Binds a socket to a specific source and destination address.
+ *
+ * @param sockfd The socket file descriptor.
+ * @param src_addr Pointer to the source address structure.
+ * @param addrlen Length of the source address structure.
+ * @param dest_addr Pointer to the destination address structure.
+ * @param addrlen1 Length of the destination address structure.
+ * @return 0 on success, -1 on failure.
+ *       If an error occurred, the errno variable will be set to indicate the specific error.
+ */
 int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const struct sockaddr *dest_addr, socklen_t addrlen1)
 {
     if (addrlen != sizeof(struct sockaddr_in) || addrlen1 != sizeof(struct sockaddr_in))
@@ -233,12 +247,19 @@ int m_bind(int sockfd, const struct sockaddr *src_addr, socklen_t addrlen, const
     return 0;
 }
 
-/*
-function_name: m_sendto
-function_prototype: int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
-input_params: int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen
-return: int
-*/
+/**
+ * Sends a message to a destination address using a socket. More specifically, it writes the message to the send buffer of the socket.
+ *
+ * @param sockfd The socket file descriptor.
+ * @param buf Pointer to the buffer containing the message to be sent.
+ * @param len The length of the message in bytes.
+ * @param flags Flags to modify the behavior of the send operation (currently not supported).
+ * @param dest_addr Pointer to a sockaddr structure containing the destination address.
+ * @param addrlen The length of the destination address structure.
+ * @return On success, returns the number of bytes sent. On failure, returns -1 and sets errno accordingly.
+ *         Possible errno values: EOPNOTSUPP (flags not supported), EINVAL (invalid address length),
+ *         EMSGSIZE (message too long), ENOTCONN (socket not connected), ENOBUFS (no buffer space available).
+ */
 int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
 {
     if (flags != 0)
@@ -277,6 +298,7 @@ int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct so
 
     if (port_param != dest_port_table || ip_param.s_addr != dest_ip_table.s_addr)
     {
+        // Destination address does not match
         errno = ENOTCONN;
         Up(sem_row);
         return -1;
@@ -285,6 +307,7 @@ int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct so
     int next_buf_index = (SM[sockfd].send_window.last_buf_index + 1) % SEND_BUFF_SIZE;
     if (SM[sockfd].send_window.buffer_is_valid[next_buf_index] != 0)
     {
+        // Buffer space not available
         errno = ENOBUFS;
         Up(sem_row);
         return -1;
@@ -300,6 +323,19 @@ int m_sendto(int sockfd, const void *buf, size_t len, int flags, const struct so
     return len;
 }
 
+/**
+ * Receives a message from a socket. More specifically, it reads the message from the receive buffer of the socket.
+ *
+ * @param sockfd The socket file descriptor.
+ * @param buf Pointer to the buffer where the received message will be stored.
+ * @param len The maximum length of the message to be received.
+ * @param flags Flags that modify the behavior of the receive operation (currently not supported).
+ * @param src_addr Pointer to a sockaddr structure that will be filled with the source address information.
+ * @param addrlen Pointer to the length of the src_addr structure.
+ *
+ * @return On success, returns the length of the received message. On failure, returns -1 and sets errno accordingly.
+ *         Possible errno values: EOPNOTSUPP (flags not supported), EMSGSIZE (message too long), ENOMSG (no message available).
+ */
 int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen)
 {
     if (flags != 0)
@@ -329,6 +365,7 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     int next_buf_index = (SM[sockfd].receive_window.to_deliver) % RECV_BUFF_SIZE;
     if (SM[sockfd].receive_window.buffer_is_valid[next_buf_index] == 0)
     {
+        // No message available
         Up(sem_row);
         errno = ENOMSG;
         return -1;
@@ -360,6 +397,13 @@ int m_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *sr
     shmdt(SM);
     return len;
 }
+/**
+ * Closes the socket with the given file descriptor. More specifically, it marks the socket as available in the shared memory.
+ *
+ * @param fd The file descriptor of the socket to be closed.
+ * @return 0 on success, -1 on failure.
+ *       If an error occurred, the errno variable will be set to indicate the specific error.
+ */
 
 int m_close(int fd)
 {
@@ -388,6 +432,12 @@ int m_close(int fd)
     return 0;
 }
 
+/**
+ * This function is used to drop a message with a probability of p.
+ *
+ * @param p The probability of dropping the message.
+ * @return 1 if the message is dropped, 0 otherwise.
+ */
 int dropMessage(float p)
 {
 
