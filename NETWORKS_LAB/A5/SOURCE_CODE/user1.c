@@ -13,6 +13,8 @@
 
 /*
 User 1 sends messages to user2 from a file
+
+The end of the file is marked by sending a message with all characters as '$'
 */
 
 /*
@@ -42,10 +44,9 @@ Also reduce the MSG_SIZE to smaller value (15) fr better I/O during testing with
 #define PORT_1 8081
 #define PORT_2 8080
 
-
 void signal_handler(int signum)
 {
-    printf("Signal %d received\n", signum);
+    printf("\nSignal %d received\n", signum);
     printf("Exiting\n");
     exit(EXIT_SUCCESS);
 }
@@ -124,7 +125,7 @@ int main()
             printf("Sent: %d\n", count);
             count++;
         }
-        if (count > 1024)
+        if (count >= 100)
         {
             break;
         }

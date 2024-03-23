@@ -38,7 +38,7 @@ Run with DVERBOSE defined to see sleep messages
 
 void signal_handler(int signum)
 {
-    printf("Signal %d received\n", signum);
+    printf("\nSignal %d received\n", signum);
     printf("Exiting\n");
     exit(EXIT_SUCCESS);
 }

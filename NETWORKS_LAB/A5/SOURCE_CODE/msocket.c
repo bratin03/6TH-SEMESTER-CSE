@@ -31,6 +31,7 @@ struct sembuf pop, vop;
  * It sets the socket ID, error number, IP address, and port to their default values.
  *
  * @param SI The pointer to the SOCK_INFO structure to be reset.
+ * @return void
  */
 void reset_sock_info(struct SOCK_INFO *SI)
 {

@@ -117,8 +117,8 @@ struct sembuf pop, vop;
 int msg_count = 0, msg_send_count = 0, ack_count = 0;
 
 /**
- * @brief Signal handler function that handles SIGQUIT and SIGINT signals.
- *        Clears shared memory and exits the program.
+ * Signal handler function that handles SIGQUIT and SIGINT signals.
+ * Clears shared memory and exits the program.
  *
  * @param signo The signal number.
  */
@@ -387,6 +387,7 @@ void *Garbage_Collector()
  * If the receive window becomes full, it sends an acknowledgment indicating that there is no space available.
  * If the receive window has space available, it sends an acknowledgment indicating the last in-order packet received and the current window size.
  * The R_Thread function runs in an infinite loop, continuously monitoring the sockets for incoming packets.
+ * @return void
  */
 
 void *R_Thread()

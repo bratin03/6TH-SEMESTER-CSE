@@ -15,6 +15,7 @@
 # Run './initmsocket' to start the server
 # Run './user1' to start the first client
 # Run './user2' to start the second client
+# Run `make clean` to remove all the executables and object files
 
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -pthread
