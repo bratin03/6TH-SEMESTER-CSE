@@ -344,6 +344,19 @@ void *Garbage_Collector()
     {
         for (int i = 0; i < N; i++)
         {
+            // If closed by m_close, close the socket and reset the destination IP address
+            if (SM[i].src_sock != 0 && SM[i].is_available == 1)
+            {
+                Down(table_lock);
+                close(SM[i].src_sock);
+                SM[i].src_sock = 0;
+                SM[i].pid = 0;
+                inet_aton("0.0.0.0", &SM[i].dest_ip);
+                Up(table_lock);
+                continue;
+            }
+
+            // Check if the process is dead
             if (SM[i].is_available == 0)
             {
                 Down(sem_row[i]);

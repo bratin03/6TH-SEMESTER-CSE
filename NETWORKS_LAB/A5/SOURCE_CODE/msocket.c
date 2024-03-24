@@ -424,10 +424,6 @@ int m_close(int fd)
     vop.sem_op = 1;
     Down(sem_row);
     SM[fd].is_available = 1;
-    SM[fd].pid = 0;
-    SM[fd].src_sock = 0;
-    SM[fd].dest_port = 0;
-    inet_aton("0.0.0.0", &SM[fd].dest_ip);
     Up(sem_row);
     shmdt(SM);
     return 0;

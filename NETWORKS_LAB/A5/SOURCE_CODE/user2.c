@@ -33,8 +33,8 @@ Run with DVERBOSE defined to see sleep messages
 #define OUTPUT_FILE "output.txt"
 #define IP_1 "127.0.0.1"
 #define IP_2 "127.0.0.1"
-#define PORT_1 8081
-#define PORT_2 8080
+#define PORT_1 15081
+#define PORT_2 15080
 
 void signal_handler(int signum)
 {
