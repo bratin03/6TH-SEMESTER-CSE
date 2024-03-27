@@ -4,9 +4,6 @@
 # Project Title: Country Grouping using Complete Linkage Divisive (Top-Down) Clustering Technique
 
 model: main.py requirements.txt
-	@echo "Installing required packages..."
-	@pip3 install -r requirements.txt
-	@echo "Installing done."
 	@echo "Running the model..."
 	@mkdir -p ../OUTPUT
 	@python3 main.py

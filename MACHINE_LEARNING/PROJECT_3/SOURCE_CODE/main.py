@@ -22,8 +22,6 @@ def cosine_similarity(v1, v2):
     """
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-
-
 def DataLoader(file_path="../DATASET/country.csv"):
     """
     Load data from a CSV file and return the attributes and entries.
@@ -38,7 +36,6 @@ def DataLoader(file_path="../DATASET/country.csv"):
     attributes = data.columns
     entries = data.values
     return attributes, entries
-
 
 def sort_clusters(names_clusters, clusters):
     """
@@ -59,7 +56,6 @@ def sort_clusters(names_clusters, clusters):
             sorted_clusters[i].append(clusters[i][index])
     sorted_names_clusters = [sorted(names) for names in names_clusters]
     return sorted_names_clusters, sorted_clusters
-
 
 def K_Means_Clustering(k, entries, itr=20, random_seed=2):
     """
@@ -99,7 +95,6 @@ def K_Means_Clustering(k, entries, itr=20, random_seed=2):
         if np.array_equal(centroids, new_centroids):
             break
     return names_clusters, clusters, centroids
-
 
 def write_clusters_to_file(names_clusters, clusters, centroids, file_path):
     """
@@ -167,7 +162,6 @@ def read_clusters_from_file(file_path):
                 name = lines[i].strip()
                 names_clusters[cluster_index-1].append(name)
     return names_clusters, clusters
-
 
 def calculate_Silhouette(clusters):
     """
@@ -290,7 +284,6 @@ def generate_permutations(n):
             permutations.append(new_permutation)
     return permutations
 
-
 def Jaccard_Similarity(list1, list2):
     """
     Calculates the Jaccard similarity coefficient between two lists.
@@ -317,8 +310,6 @@ def Jaccard_Similarity(list1, list2):
         return 0.0
     else:
         return intersection_count / union_count
-
-
 
 def Try_All_Set_Map_Jaccard(cluster1, cluster2):
     """
@@ -363,8 +354,19 @@ def Try_All_Set_Map_Jaccard(cluster1, cluster2):
         jaccard_all.append(Jaccard_Similarity(cluster1[i], cluster2[best_permutation[i]]))
     return best_avg_jaccard, jaccard_all, best_permutation
 
-
 def write_cluster_index_to_file(cluster,dataset,file_path):
+    """
+    Write the cluster index to a file.
+
+    Args:
+        cluster (list): A list of lists containing the names of countries in each cluster.
+        dataset (list): A list of entries, where each entry is a list of features.
+        file_path (str): The path to the file where the cluster index will be written.
+    
+    Returns:
+        None
+    """
+
     n=len(cluster)
     name_map={}
     i=0
@@ -382,10 +384,7 @@ def write_cluster_index_to_file(cluster,dataset,file_path):
                 i+=1
             f.write(f"{print_string}\n")
 
-                
-            
-            
-
+        
 if __name__ == "__main__":
     cur_time = time.time()
     print("=====================================")
@@ -426,12 +425,19 @@ if __name__ == "__main__":
         "../OUTPUT/cluster_output_{}.txt".format(best_k))
     names_clusters_hierarchical, clusters_hierarchical = read_clusters_from_file(
         "../OUTPUT/cluster_output_hierarchical.txt")
+    cur_time = time.time()
     avg_jaccard, jaccard_all, best_permutation = Try_All_Set_Map_Jaccard(
         names_clusters_kmeans, names_clusters_hierarchical)
+    print("=====================================")
+    print("Time Taken to Calculate Jaccard Similarity: ", time.time()-cur_time)
     for i in range(best_k):
         print("=====================================")
         print(f"Cluster {i+1} of K-Means is mapped to Cluster {best_permutation[i]+1} of Hierarchical Clustering")
         print(f"Jaccard Similarity: {jaccard_all[i]}")
     print("=====================================")
+    print("Writing Cluster Index to File")
     write_cluster_index_to_file(names_clusters_kmeans,entries,"../OUTPUT/kmeans.txt")
     write_cluster_index_to_file(names_clusters_hierarchical,entries,"../OUTPUT/divisive.txt")
+    print("=====================================")
+    print("Cluster Index Written to File")
+    print("=====================================")
