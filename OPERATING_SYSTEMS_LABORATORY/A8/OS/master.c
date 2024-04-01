@@ -13,11 +13,13 @@
 #include <signal.h>
 
 #define PROB 0.1
+#define MAX_PAGE_PER_PROCESS 100
 
 #define P(s) semop(s, &pop, 1)
 #define V(s) semop(s, &vop, 1)
 
-#define DEBUG
+#define DEBUG1
+#define DEBUG2
 #define VERBOSE
 
 int pidscheduler;
@@ -36,10 +38,10 @@ void sighand(int signum)
 
 typedef struct SM1
 {
-    int pid;         // process id
-    int mi;          // number of required pages
-    int fi;          // number of frames allocated
-    int **pagetable; // page table
+    int pid;                                // process id
+    int mi;                                 // number of required pages
+    int fi;                                 // number of frames allocated
+    int pagetable[MAX_PAGE_PER_PROCESS][3]; // page table
     int totalpagefaults;
     int totalillegalaccess;
 } SM1;
@@ -59,7 +61,7 @@ int main()
     printf("Enter the Physical Address Space size: ");
     scanf("%d", &f);
 
-#ifdef DEBUG
+#ifdef DEBUG1
     printf("Number of processes: %d\n", k);
     printf("Virtual Address Space size: %d\n", m);
     printf("Physical Address Space size: %d\n", f);
@@ -72,11 +74,9 @@ int main()
 
     for (int i = 0; i < k; i++)
     {
-        sm1[i].pagetable = (int **)malloc(m * sizeof(int *));
-        for (int j = 0; j < m; j++)
-        {
-            sm1[i].pagetable[j] = (int *)malloc(3 * sizeof(int));
-        }
+        sm1[i].pid = 0;
+        sm1[i].mi = 0;
+        sm1[i].fi = 0;
         sm1[i].totalpagefaults = 0;
         sm1[i].totalillegalaccess = 0;
     }
@@ -94,7 +94,6 @@ int main()
     for (int i = 0; i < f; i++)
     {
         sm2[i] = 1;
-        printf("CHECk\n");
     }
     sm2[f] = -1;
 
@@ -116,11 +115,13 @@ int main()
 #ifdef VERBOSE
     printf("Shared Memory for Process to Page Mapping created\n");
 #endif
-
-    // semaphore 1 for Processes
-    key = ftok("master.c", 4);
-    int semid1 = semget(key, 1, IPC_CREAT | 0666);
-    semctl(semid1, 0, SETVAL, 0);
+    // // semaphore 1 for Processes
+    // key = ftok("master.c", 4);
+    // int semid1 = semget(key, k, IPC_CREAT | 0666);
+    // for (int i = 0; i < k; i++)
+    // {
+    //     semctl(semid1, i, SETVAL, 0);
+    // }
 
     // semaphore 2 for Scheduler
     key = ftok("master.c", 5);
@@ -149,6 +150,14 @@ int main()
     key = ftok("master.c", 10);
     int msgid3 = msgget(key, IPC_CREAT | 0666);
 
+    int *semid1 = (int *)malloc(k * sizeof(int));
+    for (int i = 0; i < k; i++)
+    {
+        key = ftok("master.c", 11 + i);
+        semid1[i] = semget(key, 1, IPC_CREAT | 0666);
+        semctl(semid1[i], 0, SETVAL, 0);
+    }
+
     // convert msgid to string
     char msgid1str[10], msgid2str[10], msgid3str[10];
     sprintf(msgid1str, "%d", msgid1);
@@ -169,10 +178,13 @@ int main()
     pidscheduler = fork();
     if (pidscheduler == 0)
     {
+#ifdef DEBUG1
+        printf("Scheduler Process arguments: %s %s %s\n", msgid1str, msgid2str, strk);
+#endif
         execlp("./sched", "./sched", msgid1str, msgid2str, strk, NULL);
         perror("exec");
     }
-    else
+    else if (pidscheduler == -1)
     {
         perror("fork");
     }
@@ -185,10 +197,13 @@ int main()
     pidmmu = fork();
     if (pidmmu == 0)
     {
+#ifdef DEBUG1
+        printf("Memory Management Unit Process arguments: %s %s %s %s\n", msgid2str, msgid3str, shmid1str, shmid2str);
+#endif
         execlp("xterm", "xterm", "-T", "Memory Management Unit", "-e", "./mmu", msgid2str, msgid3str, shmid1str, shmid2str, NULL);
         perror("exec");
     }
-    else
+    else if (pidmmu == -1)
     {
         perror("fork");
     }
@@ -199,6 +214,11 @@ int main()
 
     int **refi = (int **)malloc((k) * sizeof(int *));
     char **refstr = (char **)malloc((k) * sizeof(char *));
+    if (refi == NULL || refstr == NULL)
+    {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
 
     // initialize the Processes
     for (int i = 0; i < k; i++)
@@ -243,8 +263,8 @@ int main()
             }
         }
 
-        refstr[i] = (char *)malloc(y * sizeof(char));
-        memset(refstr[i], '\0', y);
+        refstr[i] = (char *)malloc(y + 10 * sizeof(char));
+        memset(refstr[i], '\0', y + 10);
 
         for (int j = 0; j < x; j++)
         {
@@ -266,7 +286,9 @@ int main()
         else
         {
             // pass ref[i], msgid1str, msgid3str
-            execlp("./process", "./process", refstr[i], msgid1str, msgid3str, NULL);
+            char processNoStr[10];
+            sprintf(processNoStr, "%d", i);
+            execlp("./process", "./process", refstr[i], msgid1str, msgid3str, processNoStr, NULL);
         }
     }
 
@@ -290,7 +312,10 @@ int main()
     shmctl(shmid3, IPC_RMID, NULL);
 
     // remove semaphores
-    semctl(semid1, 0, IPC_RMID, 0);
+    for (int i = 0; i < k; i++)
+    {
+        semctl(semid1[i], 0, IPC_RMID, 0);
+    }
     semctl(semid2, 0, IPC_RMID, 0);
     semctl(semid3, 0, IPC_RMID, 0);
     semctl(semid4, 0, IPC_RMID, 0);

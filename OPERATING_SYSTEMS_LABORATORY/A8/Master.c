@@ -1,135 +1,111 @@
-/**********************************************************
-                    Student Information:
------------------------------------------------------------
-                    Name: Bratin Mondal
-                    Student ID: 21CS10016
------------------------------------------------------------
-        Department of Computer Science and Engineering,
-        Indian Institute of Technology Kharagpur.
-***********************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/sem.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+#include <time.h>
+#include <signal.h>
 
-#define DEBUG
-#define VERBOSE
+#define PROB 0.1
 
-typedef struct Page_Table_Entry
+#define DEBUG1
+#define DEBUG2
+#define DEBUG3
+#define DEBUG4
+
+#define MAX_PAGE_PER_PROCESS 1000
+
+#define P(s) semop(s, &pop, 1)
+#define V(s) semop(s, &vop, 1)
+
+int pidscheduler;
+int pidmmu;
+
+void sighand(int signum)
 {
-    int frame_no;
-    int valid;
-} PTE;
-
-typedef struct Page_Table
-{
-    int size;
-    PTE *entries;
-} PT;
-
-void init_page_table(PT *pt, int size)
-{
-    pt->size = size;
-    pt->entries = (PTE *)malloc(size * sizeof(PTE));
-    for (int i = 0; i < size; i++)
+    if (signum == SIGINT)
     {
-        pt->entries[i].frame_no = -1;
-        pt->entries[i].valid = 0;
+        // kill scheduler,mmu and all the processes
+        kill(pidscheduler, SIGINT);
+        kill(pidmmu, SIGINT);
+        exit(1);
     }
 }
 
-PT **init_page_tables(int n, int size)
+typedef struct SM1
 {
-    PT **page_tables = (PT **)malloc(n * sizeof(PT *));
-    for (int i = 0; i < n; i++)
-    {
-        page_tables[i] = (PT *)malloc(sizeof(PT));
-        init_page_table(page_tables[i], size);
-    }
-    return page_tables;
-}
-
-typedef struct Free_Frame_List
-{
-    int size;
-    int *frames;
-} FFL;
-
-void init_free_frame_list(FFL *ffl, int size)
-{
-    ffl->size = size;
-    ffl->frames = (int *)malloc(size * sizeof(int));
-    for (int i = 0; i < size; i++)
-    {
-        ffl->frames[i] = i;
-    }
-}
-
-int get_free_frame(FFL *ffl)
-{
-    if (ffl->size == 0)
-    {
-        return -1;
-    }
-    int frame = ffl->frames[0];
-    for (int i = 0; i < ffl->size - 1; i++)
-    {
-        ffl->frames[i] = ffl->frames[i + 1];
-    }
-    ffl->size--;
-    return frame;
-}
-
-int add_free_frame(FFL *ffl, int frame)
-{
-    ffl->frames[ffl->size] = frame;
-    ffl->size++;
-    return 0;
-}
-
-typedef struct Page_Number_Mapping
-{
-    int size;
-    int *frames;
-} PNM;
-
-void init_page_number_mapping(PNM *pnm, int size)
-{
-    pnm->size = size;
-    pnm->frames = (int *)malloc(size * sizeof(int));
-    for (int i = 0; i < size; i++)
-    {
-        pnm->frames[i] = -1;
-    }
-}
-
-void add_page_number_mapping(PNM *pnm, int page_no, int frame_no)
-{
-    pnm->frames[page_no] = frame_no;
-}
-
-int get_frame_number(PNM *pnm, int page_no)
-{
-    return pnm->frames[page_no];
-}
+    int pid; // process id
+    int mi;  // number of required pages
+    int fi;  // number of frames allocated
+    int pages[MAX_PAGE_PER_PROCESS][3];
+    int totalpagefaults;
+    int totalillegalaccess;
+} SM1;
 
 int main()
 {
+    srand(time(0));
+
+    struct sembuf pop, vop;
+    pop.sem_num = 0;
+    pop.sem_op = -1;
+    pop.sem_flg = 0;
+    vop.sem_num = 0;
+    vop.sem_op = 1;
+    vop.sem_flg = 0;
+
     int k, m, f;
-    printf("Enter Total Number of Processes: ");
+    printf("Enter the number of processes: ");
     scanf("%d", &k);
-    printf("Enter Maximum Number of Pages required by each Process: ");
-    scanf("%d", &m);
-    printf("Enter Total Number of Frames: ");
+    printf("Enter the Virtual address space - Maximum number of pages required per process: ");
     scanf("%d", &f);
+    printf("Enter Physical address space - Total number of frames: ");
+    scanf("%d", &m);
+
+#ifdef DEBUG1
+    printf("Number of processes: %d\n", k);
+    printf("Virtual address space - Maximum number of pages required per process: %d\n", f);
+    printf("Physical address space - Total number of frames: %d\n", m);
+#endif
+
+    key_t key1 = ftok("/usr/bin", 1);
+    int shmid1 = shmget(key1, k * sizeof(SM1), IPC_CREAT | 0666);
+    if (shmid1 == -1)
+    {
+        perror("shmget");
+        exit(1);
+    }
+    SM1 *sm1 = (SM1 *)shmat(shmid1, NULL, 0);
+    for (int i = 0; i < k; i++)
+    {
+        sm1[i].pid = -1;
+        sm1[i].mi = 0;
+        sm1[i].fi = 0;
+        sm1[i].totalpagefaults = 0;
+        sm1[i].totalillegalaccess = 0;
+    }
+
+#ifdef DEBUG2
+    printf("Shared memory 1 created for %d processes\n", k);
+#endif
+
+    key_t key2 = ftok("/usr/bin", 2);
+    int shmid2 = shmget(key2, (f + 1) * sizeof(int), IPC_CREAT | 0666);
+    if (shmid2 == -1)
+    {
+        perror("shmget");
+        exit(1);
+    }
+    int *sm2 = (int *)shmat(shmid2, NULL, 0);
+    for (int i = 0; i < f + 1; i++)
+    {
+        sm2[i] = 1;
+    }
+    sm2[f] = -1;
 }

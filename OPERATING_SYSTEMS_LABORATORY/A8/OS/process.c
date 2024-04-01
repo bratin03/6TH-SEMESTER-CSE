@@ -10,6 +10,11 @@
 #include <string.h>
 #include <time.h>
 
+#define DEBUG1
+#define DEBUG2
+#define VERBOSE
+#define REFERENCE_STRING_SIZE 100
+
 #define P(s) semop(s, &pop, 1)
 #define V(s) semop(s, &vop, 1)
 
@@ -17,6 +22,7 @@ typedef struct message1
 {
     long type;
     int pid;
+    int no;
 } message1;
 
 typedef struct message3
@@ -31,27 +37,40 @@ int main(int argc, char *argv[])
     struct sembuf pop = {0, -1, 0};
     struct sembuf vop = {0, 1, 0};
 
-    if (argc != 4)
+    if (argc != 5)
     {
-        printf("Usage: %s <Reference String> <Virtual Address Space size> <Physical Address Space size>\n", argv[0]);
+        printf("Usage: %s <Reference String> <Virtual Address Space size> <Physical Address Space size> <Process No>\n", argv[0]);
         exit(1);
     }
 
+#ifdef DEBUG1
+    printf("\tProcess arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+#endif
+
     int msgid1 = atoi(argv[2]);
     int msgid3 = atoi(argv[3]);
+    int processNo = atoi(argv[4]);
 
-    char *refstr;
+    char *refstr = (char *)malloc(REFERENCE_STRING_SIZE * sizeof(char));
+    if(refstr == NULL)
+    {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
     strcpy(refstr, argv[1]);
 
-    printf("Process has started\n");
-    key_t key = ftok("master.c", 4);
-    int semid = semget(key, 1, IPC_CREAT | 0666);
+#ifdef VERBOSE
+    printf("\tProcess: %d starting execution\n", getpid());
+#endif
 
+    key_t key = ftok("master.c", 11 + processNo);
+    int semid = semget(key, 1, IPC_CREAT | 0666);
     int pid = getpid();
 
     message1 msg1;
     msg1.type = 1;
     msg1.pid = pid;
+    msg1.no = processNo;
 
     // send pid to ready queue
     msgsnd(msgid1, (void *)&msg1, sizeof(message1), 0);

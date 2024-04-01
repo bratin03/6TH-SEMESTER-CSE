@@ -10,6 +10,10 @@
 #include <string.h>
 #include <time.h>
 
+#define DEBUG1
+#define DEBUG2
+#define VERBOSE
+
 #define P(s) semop(s, &pop, 1)
 #define V(s) semop(s, &vop, 1)
 
@@ -17,6 +21,7 @@ typedef struct message1
 {
     long type;
     int pid;
+    int no;
 } message1;
 
 typedef struct message2
@@ -36,13 +41,22 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+#ifdef DEBUG1
+    printf("\t\tScheduler arguments: %s %s %s\n", argv[1], argv[2], argv[3]);
+#endif
+
     int msgid1 = atoi(argv[1]);
     int msgid2 = atoi(argv[2]);
     int k = atoi(argv[3]);
 
-    key_t key = ftok("master.c", 4);
-    int semid = semget(key, 1, IPC_CREAT | 0666);
-
+    key_t key;
+    int *semid1 = (int *)malloc(k * sizeof(int));
+    for (int i = 0; i < k; i++)
+    {
+        key = ftok("master.c", 11 + i);
+        semid1[i] = semget(key, 1, IPC_CREAT | 0666);
+        semctl(semid1[i], 0, SETVAL, 0);
+    }
     key = ftok("master.c", 7);
     int semid4 = semget(key, 1, IPC_CREAT | 0666);
 
@@ -55,11 +69,11 @@ int main(int argc, char *argv[])
     {
         // wait for processes to come
         msgrcv(msgid1, (void *)&msg1, sizeof(message1), 0, 0);
-
-        printf("\t\tScheduling process %d\n", msg1.pid);
-
+#ifdef VERBOSE
+        printf("\t\tScheduling process %d Process No %d\n", msg1.pid, msg1.no);
+#endif
         // signal process to start
-        V(semid);
+        V(semid1[msg1.no]);
 
         // wait for mmu
         msgrcv(msgid2, (void *)&msg2, sizeof(message2), 0, 0);
@@ -76,6 +90,12 @@ int main(int argc, char *argv[])
             msg1.pid = msg2.pid;
             msg1.type = 1;
             msgsnd(msgid1, (void *)&msg1, sizeof(message1), 0);
+        }
+        else
+        {
+#ifdef DEBUG1
+            printf("\t\tScheduler: Invalid message type\n");
+#endif
         }
     }
 

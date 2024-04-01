@@ -10,16 +10,34 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
+#include <signal.h>
+
+#define DEBUG1
+#define DEBUG2
+#define VERBOSE
 
 #define P(s) semop(s, &pop, 1)
 #define V(s) semop(s, &vop, 1)
+#define OUTPUT_FILE "result.txt"
+
+#ifdef DEBUG1
+void signalhandler(int signum)
+{
+    if (signum == SIGINT)
+    {
+        sleep(100);
+    }
+}
+#endif
+
+#define MAX_PAGE_PER_PROCESS 100
 
 typedef struct SM1
 {
-    int pid;         // process id
-    int mi;          // number of required pages
-    int fi;          // number of frames allocated
-    int **pagetable; // page table
+    int pid;                                // process id
+    int mi;                                 // number of required pages
+    int fi;                                 // number of frames allocated
+    int pagetable[MAX_PAGE_PER_PROCESS][3]; // page table
     int totalpagefaults;
     int totalillegalaccess;
 } SM1;
@@ -36,10 +54,13 @@ typedef struct message3
     int pid;
 } message3;
 
-
-
 int main(int argc, char *argv[])
 {
+
+    FILE *fp = fopen(OUTPUT_FILE, "w");
+#ifdef DEBUG1
+    signal(SIGINT, signalhandler);
+#endif
     int timestamp = 0;
 
     struct sembuf pop = {0, -1, 0};
@@ -50,6 +71,11 @@ int main(int argc, char *argv[])
         printf("Usage: %s <Message Queue 2 ID> <Message Queue 3 ID> <Shared Memory 1 ID> <Shared Memory 2 ID>\n", argv[0]);
         exit(1);
     }
+
+#ifdef DEBUG1
+    printf("\t\t\tMMU arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+    fprintf(fp, "MMU arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+#endif
 
     int msgid2 = atoi(argv[1]);
     int msgid3 = atoi(argv[2]);
@@ -66,16 +92,24 @@ int main(int argc, char *argv[])
     {
         // wait for process to come
         msgrcv(msgid3, (void *)&msg3, sizeof(message3), 0, 0);
+#ifdef DEBUG1
+        printf("\t\t\tMMU: %d %d\n", msg3.pid, msg3.pageorframe);
+        fprintf(fp, "MMU: %d %d\n", msg3.pid, msg3.pageorframe);
+#endif
         timestamp++;
 
         printf("Global Ordering - (Timestamp %d, Process %d, Page %d)\n", timestamp, msg3.pid, msg3.pageorframe);
-        
+        fprintf(fp, "\tGlobal Ordering - (Timestamp %d, Process %d, Page %d)\n", timestamp, msg3.pid, msg3.pageorframe);
         // check if the requested page is in the page table of the process with that pid
         int i = 0;
         while (sm1[i].pid != msg3.pid)
         {
             i++;
         }
+        #ifdef DEBUG1
+        printf("Process %d\n", i);
+        fprintf(fp, "Process %d\n", i);
+        #endif
 
         int page = msg3.pageorframe;
         if (page == -9)
@@ -114,7 +148,7 @@ int main(int argc, char *argv[])
             sm1[i].totalillegalaccess++;
 
             printf("Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
-
+            fprintf(fp, "\tInvalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
             // free the frames
             for (int j = 0; j < sm1[i].mi; j++)
             {
@@ -137,6 +171,7 @@ int main(int argc, char *argv[])
             msg3.pageorframe = -1;
             msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
 
+            fprintf(fp, "\tPage fault sequence - (Process %d, Page %d)\n", i + 1, page);
             printf("Page fault sequence - (Process %d, Page %d)\n", i + 1, page);
 
             // Page Fault Handler (PFH)
@@ -166,13 +201,11 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                
                 sm1[i].pagetable[minpage][1] = 0;
                 sm1[i].pagetable[page][0] = sm1[i].pagetable[minpage][0];
                 sm1[i].pagetable[page][1] = 1;
                 sm1[i].pagetable[page][2] = timestamp;
                 sm1[i].pagetable[minpage][2] = INT_MAX;
-
 
                 msg2.type = 1;
                 msg2.pid = msg3.pid;
@@ -192,4 +225,5 @@ int main(int argc, char *argv[])
             }
         }
     }
+    fclose(fp);
 }
