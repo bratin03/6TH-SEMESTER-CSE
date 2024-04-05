@@ -200,7 +200,8 @@ int main()
 #ifdef DEBUG1
         printf("Memory Management Unit Process arguments: %s %s %s %s\n", msgid2str, msgid3str, shmid1str, shmid2str);
 #endif
-        execlp("xterm", "xterm", "-T", "Memory Management Unit", "-e", "./mmu", msgid2str, msgid3str, shmid1str, shmid2str, NULL);
+        // execlp("xterm", "xterm", "-T", "Memory Management Unit", "-e", "./mmu", msgid2str, msgid3str, shmid1str, shmid2str, NULL);
+        execlp("./mmu", "./mmu", msgid2str, msgid3str, shmid1str, shmid2str, NULL);
         perror("exec");
     }
     else if (pidmmu == -1)

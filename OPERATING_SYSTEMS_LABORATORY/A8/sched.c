@@ -1,9 +1,0 @@
-/**********************************************************
-                    Student Information:  
------------------------------------------------------------
-                    Name: Bratin Mondal
-                    Student ID: 21CS10016
------------------------------------------------------------
-        Department of Computer Science and Engineering,
-        Indian Institute of Technology Kharagpur.
-***********************************************************/
