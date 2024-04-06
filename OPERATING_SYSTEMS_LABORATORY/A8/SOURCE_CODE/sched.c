@@ -1,45 +1,77 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <string.h>
-#include <time.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <signal.h>
 
-#define DEBUG1
-#define DEBUG2
-#define PENDING
+#define DEBUG
+#define VERBOSE
 
-#define P(s) semop(s, &pop, 1)
+void purple()
+{
+    printf("\033[1;35m");
+}
+
+void green()
+{
+    printf("\033[1;32m");
+}
+
+void red()
+{
+    printf("\033[1;31m");
+}
+
+void reset()
+{
+    printf("\033[0m");
+}
+
 #define V(s) semop(s, &vop, 1)
 
-typedef struct message1
+typedef struct MQ1
 {
     long type;
     int pid;
     int processNo;
-} message1;
+} MQ1;
 
-typedef struct message2
+typedef struct MQ2
 {
     long type;
     int pid;
     int processNo;
-} message2;
+} MQ2;
 
 int main(int argc, char *argv[])
 {
-    struct sembuf pop = {0, -1, 0};
-    struct sembuf vop = {0, 1, 0};
+    struct sembuf vop;
+    vop.sem_num = 0;
+    vop.sem_op = 1;
+    vop.sem_flg = 0;
 
     if (argc != 4)
     {
-        printf("Usage: %s <Message Queue 1 ID> <Message Queue 2 ID> <# Processes>\n", argv[0]);
-        exit(1);
+        fprintf(stderr, "Usage: %s <MQ1 ID> <MQ2 ID> <Number of processes>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     int msgid1 = atoi(argv[1]);
@@ -56,45 +88,53 @@ int main(int argc, char *argv[])
         semid1[i] = semget(key, 1, IPC_CREAT | 0666);
     }
 
-    int pid = getpid();
-
-    message1 msg1;
-    message2 msg2;
+    MQ1 Ready_Queue;
+    MQ2 msg2;
 
     while (k > 0)
     {
-        // wait for processes to come
-        msgrcv(msgid1, (void *)&msg1, sizeof(message1), 0, 0);
+        msgrcv(msgid1, (void *)&Ready_Queue, sizeof(MQ1), 0, 0);
 
-        printf("\t\tScheduling process %d\n", msg1.pid);
+#ifdef VERBOSE
+        purple();
+        printf("\t\tScheduler: Process %d arrived with PID: %d\n", Ready_Queue.processNo + 1, Ready_Queue.pid);
+        reset();
+#endif
 
-        // signal process to start
-        V(semid1[msg1.processNo]);
-#ifdef PENDING
-        // wait for mmu
-        msgrcv(msgid2, (void *)&msg2, sizeof(message2), 0, 0);
+        V(semid1[Ready_Queue.processNo]);
+        msgrcv(msgid2, (void *)&msg2, sizeof(MQ2), 0, 0);
 
-        // check the type of message
         if (msg2.type == 2)
         {
-            printf("\t\tProcess %d terminated\n", msg2.pid);
+#ifdef VERBOSE
+            red();
+            printf("\t\tScheduler: Process %d with PID: %d terminated\n", msg2.processNo + 1, msg2.pid);
+            reset();
+#endif
             k--;
         }
         else if (msg2.type == 1)
         {
-            printf("\t\tProcess %d added to end of queue\n", msg2.pid);
-            msg1.pid = msg2.pid;
-            msg1.type = 1;
-            msg1.processNo = msg2.processNo;
-            msgsnd(msgid1, (void *)&msg1, sizeof(message1), 0);
-        }
+#ifdef VERBOSE
+            green();
+            printf("\t\tScheduler: Process %d with PID: %d preempted\n", msg2.processNo + 1, msg2.pid);
+            reset();
 #endif
+            Ready_Queue.pid = msg2.pid;
+            Ready_Queue.type = 1;
+            Ready_Queue.processNo = msg2.processNo;
+            msgsnd(msgid1, (void *)&Ready_Queue, sizeof(MQ1), 0);
+        }
     }
 
-    printf("\t\tScheduler terminated\n");
+#ifdef VERBOSE
+    purple();
+    printf("\t\tScheduler: All processes terminated\n");
+    printf("\t\tScheduler: Terminating\n");
+    reset();
+#endif
 
-    // signal master on semid4
     V(semid4);
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }

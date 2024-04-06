@@ -1,86 +1,155 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <string.h>
-#include <time.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <signal.h>
 
-#define DEBUG1
-#define DEBUG2
-// #define PENDING
+// #define DEBUG
+// #define VERBOSE
+// Run with VERBOSE defined for detailed output
 
+/**
+ * Macro definition for performing a semaphore operation.
+ *
+ * This macro is used to perform a semaphore operation on the specified semaphore.
+ * It takes two arguments: the semaphore identifier and the semaphore operation.
+ * The semaphore operation is performed using the semop() function.
+ *
+ * @param s The semaphore identifier.
+ */
 #define P(s) semop(s, &pop, 1)
-#define V(s) semop(s, &vop, 1)
 
-typedef struct message1
+/**
+ * Sets the text color to blue.
+ */
+void blue()
 {
-    long type;
-    int pid;
-    int processNo;
-} message1;
+    printf("\033[1;34m");
+}
 
-typedef struct message3
+/**
+ * Sets the text color to red.
+ */
+void red()
 {
-    long type;
-    int pageorframe;
-    int pid;
-    int processNo;
-} message3;
+    printf("\033[1;31m");
+}
+
+/**
+ * Sets the text color to green.
+ */
+void green()
+{
+    printf("\033[1;32m");
+}
+
+/**
+ * Sets the text color to pink.
+ */
+void pink()
+{
+    printf("\033[1;35m");
+}
+
+/**
+ * Resets the text color to the default.
+ */
+void reset()
+{
+    printf("\033[0m");
+}
+
+/**
+ * @file process.c
+ * @brief Contains the definition of two structures: MQ1 and MQ3.
+ *
+ * The MQ1 structure represents a message queue with three fields: type, pid, and processNo.
+ * The MQ3 structure represents a message queue with four fields: type, Request, pid, and processNo.
+ */
+typedef struct MQ1
+{
+    long type;        /**< The type of the message queue. */
+    int pid;          /**< The process ID. */
+    int processNo;    /**< The process number. */
+} MQ1;
+
+typedef struct MQ3
+{
+    long type;        /**< The type of the message queue. */
+    int Request;      /**< The request. */
+    int pid;          /**< The process ID. */
+    int processNo;    /**< The process number. */
+} MQ3;
+
 
 int main(int argc, char *argv[])
 {
-    struct sembuf pop = {0, -1, 0};
-    struct sembuf vop = {0, 1, 0};
+    struct sembuf pop;
+    pop.sem_num = 0;
+    pop.sem_op = -1;
+    pop.sem_flg = 0;
 
     if (argc != 5)
     {
-        printf("Usage: %s <Reference String> <Virtual Address Space size> <Physical Address Space size> <Process No>\n", argv[0]);
-        exit(1);
+        fprintf(stderr, "Usage: %s <Reference String> <MQ ID 1> <MQ ID 3> <Process No>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
+    char *refstr = (char *)malloc(sizeof(char) * (strlen(argv[1]) + 1));
+    strcpy(refstr, argv[1]);
     int msgid1 = atoi(argv[2]);
     int msgid3 = atoi(argv[3]);
     int processNo = atoi(argv[4]);
 
-    char *refstr = (char *)malloc(sizeof(char) * (strlen(argv[1]) + 1));
-    strcpy(refstr, argv[1]);
-
-    // printf("Process has started\n");
     key_t key = ftok("master.c", 10 + processNo);
     int semid = semget(key, 1, IPC_CREAT | 0666);
 
     int pid = getpid();
 
-    message1 msg1;
-    msg1.type = 1;
-    msg1.pid = pid;
-    msg1.processNo = processNo;
+    MQ1 Ready_Queue;
+    Ready_Queue.type = 1;
+    Ready_Queue.pid = pid;
+    Ready_Queue.processNo = processNo;
 
-    // send pid to ready queue
-    msgsnd(msgid1, (void *)&msg1, sizeof(message1), 0);
+#ifdef VERBOSE
+    blue();
+    printf("\t\t\tProcess %d with Process No %d Created\n", pid, processNo + 1);
+    reset();
+#endif
 
-    // wait till scheduler signals to start
+    msgsnd(msgid1, (void *)&Ready_Queue, sizeof(MQ1), 0);
 
-    // send the reference string to the scheduler, one character at a time
     int i = 0;
     int isPageFault = 0;
     int j;
     P(semid);
     while (refstr[i] != '$')
     {
-        message3 msg3;
-        msg3.type = 1;
-        msg3.pid = pid;
-        msg3.processNo = processNo;
+        MQ3 Page_Request;
+        Page_Request.type = 1;
+        Page_Request.pid = pid;
+        Page_Request.processNo = processNo;
         if (isPageFault == 0)
         {
             j = 0;
-            // extract the page number from the reference string going character by character
             while (refstr[i] != '.' && refstr[i] != '\0')
             {
                 j = j * 10 + (refstr[i] - '0');
@@ -89,48 +158,65 @@ int main(int argc, char *argv[])
             i++;
         }
 
-        printf("Page %d requested\n", j);
-        msg3.pageorframe = j;
-        msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
+#ifdef VERBOSE
+        pink();
+        printf("\t\t\tProcess %d with Process No %d Requesting Page %d\n", pid, processNo + 1, j);
+        reset();
+#endif
 
-        // wait for the mmu to allocate the frame
-        msgrcv(msgid3, (void *)&msg3, sizeof(message3), 0, 0);
+        Page_Request.Request = j;
+        msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
+        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 0, 0);
 
-        // check the validity of the frame number
-        if (msg3.pageorframe == -2)
+        if (Page_Request.Request == -2)
         {
-            printf("Process %d: ", pid);
-            printf("Illegal Page Number\nTerminating\n");
-            exit(1);
+#ifdef VERBOSE
+            red();
+            printf("\t\t\tProcess %d with Process No %d Terminated for Illegal Access to Page %d\n", pid, processNo + 1, j);
+            reset();
+#endif
+            exit(EXIT_FAILURE);
         }
-        else if (msg3.pageorframe == -1)
+        else if (Page_Request.Request == -1)
         {
-            printf("Process %d: ", pid);
-            printf("Page Fault\nWaiting for page to be loaded\n");
-            // wait for the page to be loaded
-            // scheduler will signal when the page is loaded
+#ifdef VERBOSE
+            red();
+            printf("\t\t\tProcess %d with Process No %d Page Fault for Page %d\n", pid, processNo, j);
+            reset();
+#endif
             isPageFault = 1;
             P(semid);
             continue;
         }
         else
         {
-            printf("Process %d: ", pid);
-            printf("Frame %d allocated\n", msg3.pageorframe);
+#ifdef VERBOSE
+            green();
+            printf("\t\t\tProcess %d with Process No %d Got Frame %d for Page %d\n", pid, processNo + 1, Page_Request.Request, j);
+            reset();
+#endif
             isPageFault = 0;
+            continue;
         }
     }
 
-    // send the termination signal to the mmu
-    printf("Process %d: ", pid);
-    printf("Got all frames properly\n");
-    message3 msg3;
-    msg3.type = 1;
-    msg3.pid = pid;
-    msg3.pageorframe = -9;
+#ifdef VERBOSE
+    green();
+    printf("\t\t\tProcess %d with Process No %d Received all Pages\n", pid, processNo + 1);
+    reset();
+#endif
 
-    msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
-    printf("Terminating\n");
+    MQ3 Page_Request;
+    Page_Request.type = 1;
+    Page_Request.pid = pid;
+    Page_Request.Request = -9;
 
-    return 0;
+    msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
+#ifdef VERBOSE
+    green();
+    printf("\t\t\tProcess %d with Process No %d Terminated after completing all Pages\n", pid, processNo + 1);
+    reset();
+#endif
+
+    exit(EXIT_SUCCESS);
 }

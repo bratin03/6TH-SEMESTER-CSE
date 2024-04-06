@@ -1,195 +1,333 @@
+/**********************************************************
+                    Student Information:
+-----------------------------------------------------------
+                    Name: Bratin Mondal
+                    Student ID: 21CS10016
+-----------------------------------------------------------
+                    Name: Somya Kumar
+                    Student ID: 21CS30050
+-----------------------------------------------------------
+        Department of Computer Science and Engineering,
+        Indian Institute of Technology Kharagpur.
+***********************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <string.h>
-#include <time.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <signal.h>
 #include <limits.h>
 
-#define MAX_PAGE_PER_PROCESS 1000
+#define VERBOSE
+// #define DEBUG
 
-#define P(s) semop(s, &pop, 1)
-#define V(s) semop(s, &vop, 1)
+#define MAX_PAGE_PER_PROCESS 10000
 
-typedef struct SM1
+#define OUTPUT_FILE "result.txt"
+
+void reset()
 {
-    int pid;                                // process id
-    int mi;                                 // number of required pages
-    int fi;                                 // number of frames allocated
-    int pagetable[MAX_PAGE_PER_PROCESS][3]; // page table
-    int totalpagefaults;
-    int totalillegalaccess;
-} SM1;
-typedef struct message2
+    printf("\033[0m");
+}
+
+typedef struct PageTable
+{
+    int pid;
+    int totalPageFaults;
+    int totalInvalidAccess;
+    int pagetable[MAX_PAGE_PER_PROCESS][3];
+} PageTable;
+
+typedef struct MQ2
 {
     long type;
     int pid;
     int processNo;
-} message2;
+} MQ2;
 
-typedef struct message3
+typedef struct MQ3
 {
     long type;
-    int pageorframe;
+    int Request;
     int pid;
     int processNo;
-} message3;
+} MQ3;
 
-int main(int argc, char *argv[])
+FILE *fp;
+int k;
+PageTable *SM1;
+
+void sig_handler(int signo)
 {
-    int timestamp = 0;
-
-    struct sembuf pop = {0, -1, 0};
-    struct sembuf vop = {0, 1, 0};
-
-    if (argc != 5)
+    if (signo == SIGINT || signo == SIGQUIT)
     {
-        printf("Usage: %s <Message Queue 2 ID> <Message Queue 3 ID> <Shared Memory 1 ID> <Shared Memory 2 ID>\n", argv[0]);
-        exit(1);
+
+        for (int i = 0; i < k; i++)
+        {
+#ifdef VERBOSE
+            reset();
+            printf("Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
+#endif
+            fprintf(fp, "Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
+        }
+
+        fclose(fp);
+        printf("\nMMU: Memory Management Unit Terminated. Press enter to exit.\n");
+        char trash;
+        scanf("%c", &trash);
+        exit(EXIT_SUCCESS);
+    }
+}
+
+int findFreeFrame(int *SM2)
+{
+    int j = 0;
+    while (SM2[j] != -1)
+    {
+        if (SM2[j] == 1)
+        {
+            SM2[j] = 0;
+            break;
+        }
+        j++;
+    }
+    if (SM2[j] == -1)
+    {
+        return -1;
+    }
+    return j;
+}
+
+int PageFaultHandler(PageTable *SM1, int *SM2, int *SM3, int T, int processNo, int frameNo)
+{
+
+    if (SM1[processNo].pagetable[frameNo][0] != -1 && SM1[processNo].pagetable[frameNo][1] == 0)
+    {
+        SM1[processNo].pagetable[frameNo][1] = 1;
+        SM1[processNo].pagetable[frameNo][2] = T;
+#ifdef DEBUG
+        reset();
+        printf("\tMMU: Frame Allocated - (Process %d, Page %d, Frame %d)\n", processNo + 1, frameNo, SM1[processNo].pagetable[frameNo][0]);
+#endif
+        return 1;
+    }
+    int inital_allocation = 0;
+    int i;
+    for (i = 0; i < SM3[processNo]; i++)
+    {
+        if (SM1[processNo].pagetable[i][0] != -1 && SM1[processNo].pagetable[i][1] == 0)
+        {
+            inital_allocation = 1;
+            break;
+        }
     }
 
-    int msgid2 = atoi(argv[1]);
-    int msgid3 = atoi(argv[2]);
-    int shmid1 = atoi(argv[3]);
-    int shmid2 = atoi(argv[4]);
-
-    message2 msg2;
-    message3 msg3;
-
-    SM1 *sm1 = (SM1 *)shmat(shmid1, NULL, 0);
-    int *sm2 = (int *)shmat(shmid2, NULL, 0);
-
-    while (1)
+    if (inital_allocation == 1)
     {
-        // wait for process to come
-        msgrcv(msgid3, (void *)&msg3, sizeof(message3), 0, 0);
-        timestamp++;
-
-        printf("Global Ordering - (Timestamp %d, Process %d, Page %d)\n", timestamp, msg3.pid, msg3.pageorframe);
-
-        // check if the requested page is in the page table of the process with that pid
-        int i = msg3.processNo;
-
-        int page = msg3.pageorframe;
-        if (page == -9)
+        if (i != frameNo)
         {
-            // process is done
-            // free the frames
-            for (int j = 0; j < sm1[i].mi; j++)
-            {
-                if (sm1[i].pagetable[j][0] != -1)
-                {
-                    sm2[sm1[i].pagetable[j][0]] = 1;
-                    sm1[i].pagetable[j][0] = -1;
-                    sm1[i].pagetable[j][1] = 0;
-                    sm1[i].pagetable[j][2] = INT_MAX;
-                }
-            }
-            msg2.type = 2;
-            msg2.pid = msg3.pid;
-            msg2.processNo = msg3.processNo;
-            msgsnd(msgid2, (void *)&msg2, sizeof(message2), 0);
-        }
-        else if (sm1[i].pagetable[page][0] != -1 && sm1[i].pagetable[page][1] == 1)
-        {
-            // page there in memory and valid, return frame number
-            sm1[i].pagetable[page][2] = timestamp;
-            msg3.pageorframe = sm1[i].pagetable[page][0];
-            msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
-        }
-        else if (page >= sm1[i].mi)
-        {
-            // illegal page number
-            // ask process to kill themselves
-            msg3.pageorframe = -2;
-            msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
-
-            // update total illegal access
-            sm1[i].totalillegalaccess++;
-
-            printf("Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
-
-            // free the frames
-            for (int j = 0; j < sm1[i].mi; j++)
-            {
-                if (sm1[i].pagetable[j][0] != -1)
-                {
-                    sm2[sm1[i].pagetable[j][0]] = 1;
-                    sm1[i].pagetable[j][0] = -1;
-                    sm1[i].pagetable[j][1] = 0;
-                    sm1[i].pagetable[j][2] = INT_MAX;
-                }
-            }
-            msg2.type = 2;
-            msg2.pid = msg3.pid;
-            msg2.processNo = msg3.processNo;
-            msgsnd(msgid2, (void *)&msg2, sizeof(message2), 0);
+            SM1[processNo].pagetable[frameNo][0] = SM1[processNo].pagetable[i][0];
+            SM1[processNo].pagetable[frameNo][1] = 1;
+            SM1[processNo].pagetable[frameNo][2] = T;
+            SM1[processNo].pagetable[i][0] = -1;
+            SM1[processNo].pagetable[i][2] = INT_MAX;
         }
         else
         {
-            // page fault
-            // ask process to wait
-            msg3.pageorframe = -1;
-            msgsnd(msgid3, (void *)&msg3, sizeof(message3), 0);
+            SM1[processNo].pagetable[frameNo][1] = 1;
+            SM1[processNo].pagetable[frameNo][2] = T;
+        }
+#ifdef DEBUG
+        reset();
+        printf("\tMMU: Frame Allocated - (Process %d, Page %d, Frame %d)\n", processNo + 1, frameNo, SM1[processNo].pagetable[frameNo][0]);
+#endif
+        return 1;
+    }
 
-            printf("Page fault sequence - (Process %d, Page %d)\n", i + 1, page);
-
-            // Page Fault Handler (PFH)
-            // check if there is a free frame in sm2
-            int j = 0;
-            while (sm2[j] != -1)
+    int freeFrame = findFreeFrame(SM2);
+    if (freeFrame != -1)
+    {
+        SM1[processNo].pagetable[frameNo][0] = freeFrame;
+        SM1[processNo].pagetable[frameNo][1] = 1;
+        SM1[processNo].pagetable[frameNo][2] = T;
+#ifdef DEBUG
+        reset();
+        printf("\tMMU: Frame Allocated - (Process %d, Page %d, Frame %d)\n", processNo + 1, frameNo, freeFrame);
+#endif
+        return 1;
+    }
+    else
+    {
+        int min = INT_MAX;
+        int replaceFrame = -1;
+        for (int j = 0; j < SM3[processNo]; j++)
+        {
+            if (SM1[processNo].pagetable[j][0] != -1)
             {
-                if (sm2[j] == 1)
+                if (SM1[processNo].pagetable[j][2] <= min)
                 {
-                    sm2[j] = 0;
-                    break;
+                    min = SM1[processNo].pagetable[j][2];
+                    replaceFrame = j;
                 }
-                j++;
-            }
-
-            if (sm2[j] == -1)
-            {
-                // no free frame
-                // find the page with the least timestamp
-                int min = INT_MAX;
-                int minpage = -1;
-                for (int k = 0; k < sm1[i].mi; k++)
-                {
-                    if (sm1[i].pagetable[k][2] < min)
-                    {
-                        min = sm1[i].pagetable[k][2];
-                        minpage = k;
-                    }
-                }
-
-                sm1[i].pagetable[minpage][1] = 0;
-                sm1[i].pagetable[page][0] = sm1[i].pagetable[minpage][0];
-                sm1[i].pagetable[page][1] = 1;
-                sm1[i].pagetable[page][2] = timestamp;
-                sm1[i].pagetable[minpage][2] = INT_MAX;
-
-                msg2.type = 1;
-                msg2.pid = msg3.pid;
-                msg2.processNo = msg3.processNo;
-                msgsnd(msgid2, (void *)&msg2, sizeof(message2), 0);
-            }
-            else
-            {
-                // free frame found
-                sm1[i].pagetable[page][0] = j;
-                sm1[i].pagetable[page][1] = 1;
-                sm1[i].pagetable[page][2] = timestamp;
-
-                msg2.type = 1;
-                msg2.pid = msg3.pid;
-                msg2.processNo = msg3.processNo;
-                msgsnd(msgid2, (void *)&msg2, sizeof(message2), 0);
             }
         }
+        if (replaceFrame == -1)
+        {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: No frame to replace - (Process %d, Page %d)\n", processNo, frameNo);
+#endif
+            return 0;
+        }
+        SM1[processNo].pagetable[replaceFrame][1] = 0;
+        SM1[processNo].pagetable[frameNo][0] = SM1[processNo].pagetable[replaceFrame][0];
+        SM1[processNo].pagetable[frameNo][1] = 1;
+        SM1[processNo].pagetable[frameNo][2] = T;
+        SM1[processNo].pagetable[replaceFrame][0] = -1;
+        SM1[processNo].pagetable[replaceFrame][2] = INT_MAX;
+#ifdef DEBUG
+        reset();
+        printf("\tMMU: Frame Replaced - (Process %d, Page %d, Replaced Page %d, Frame %d)\n", processNo + 1, frameNo, replaceFrame, SM1[processNo].pagetable[frameNo][0]);
+#endif
+        return 1;
+    }
+    return 0;
+}
+
+void freeProcessResources(PageTable *SM1, int *SM2, int *SM3, int processNo)
+{
+    for (int j = 0; j < SM3[processNo]; j++)
+    {
+        if (SM1[processNo].pagetable[j][0] != -1 && SM1[processNo].pagetable[j][1] == 1)
+        {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: Frame freeing - (Process %d, Frame %d)\n", processNo + 1, SM1[processNo].pagetable[j][0]);
+#endif
+            SM2[SM1[processNo].pagetable[j][0]] = 1;
+            SM1[processNo].pagetable[j][0] = -1;
+            SM1[processNo].pagetable[j][1] = 0;
+            SM1[processNo].pagetable[j][2] = INT_MAX;
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    int T = 0;
+    signal(SIGINT, sig_handler);
+    signal(SIGQUIT, sig_handler);
+
+    if (argc != 7)
+    {
+        fprintf(stderr, "Usage: %s <MQ ID 2> <MQ ID 3> <SM ID 1> <SM ID 2> <SM ID 3> <Total Processes>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    MQ2 msg2;
+    MQ3 Page_Request;
+    int myPID = getpid();
+    msg2.pid = myPID;
+    msg2.processNo = -1;
+    msg2.type = 1;
+
+    int msgid2 = atoi(argv[1]);
+    msgsnd(msgid2, (void *)&msg2, sizeof(MQ2), 0);
+    int msgid3 = atoi(argv[2]);
+    int shmid1 = atoi(argv[3]);
+    int shmid2 = atoi(argv[4]);
+    int shmid3 = atoi(argv[5]);
+    k = atoi(argv[6]);
+
+    SM1 = (PageTable *)shmat(shmid1, NULL, 0);
+    int *SM2 = (int *)shmat(shmid2, NULL, 0);
+    int *SM3 = (int *)shmat(shmid3, NULL, 0);
+
+    fp = fopen(OUTPUT_FILE, "w");
+
+    while (1)
+    {
+        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 0, 0);
+
+        int i = Page_Request.processNo;
+        int page = Page_Request.Request;
+        if (page != -9)
+        {
+            T++;
+#ifdef VERBOSE
+            reset();
+            printf("Global Ordering - (Timestamp %d, Process %d, Page %d)\n", T, i + 1, page);
+#endif
+            fprintf(fp, "Global Ordering - (Timestamp %d, Process %d, Page %d)\n", T, i + 1, page);
+        }
+        if (page == -9)
+        {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: Received kill signal for process %d\n", i + 1);
+#endif
+            freeProcessResources(SM1, SM2, SM3, i);
+            msg2.type = 2;
+            msg2.pid = Page_Request.pid;
+            msg2.processNo = Page_Request.processNo;
+            msgsnd(msgid2, (void *)&msg2, sizeof(MQ2), 0);
+        }
+        else if (page >= SM3[i])
+        {
+            SM1[i].totalInvalidAccess++;
+            Page_Request.Request = -2;
+            msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
+#ifdef VERBOSE
+            reset();
+            printf("Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
+#endif
+            fprintf(fp, "Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
+            freeProcessResources(SM1, SM2, SM3, i);
+            msg2.type = 2;
+            msg2.pid = Page_Request.pid;
+            msg2.processNo = Page_Request.processNo;
+            msgsnd(msgid2, (void *)&msg2, sizeof(MQ2), 0);
+        }
+        else if (SM1[i].pagetable[page][0] != -1 && SM1[i].pagetable[page][1] == 1)
+        {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: Page Hit - (Process %d, Page %d, Frame %d)\n", i + 1, page, SM1[i].pagetable[page][0]);
+#endif
+            SM1[i].pagetable[page][2] = T;
+            Page_Request.Request = SM1[i].pagetable[page][0];
+            msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
+        }
+        else
+        {
+            SM1[i].totalPageFaults++;
+            Page_Request.Request = -1;
+            msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
+#ifdef VERBOSE
+            reset();
+            printf("Page fault sequence - (Process %d, Page %d)\n", i + 1, page);
+#endif
+            fprintf(fp, "Page fault sequence - (Process %d, Page %d)\n", i + 1, page);
+
+            PageFaultHandler(SM1, SM2, SM3, T, i, page);
+            msg2.type = 1;
+            msg2.pid = Page_Request.pid;
+            msg2.processNo = Page_Request.processNo;
+            msgsnd(msgid2, (void *)&msg2, sizeof(MQ2), 0);
+        }
+    }
+
+    for (int i = 0; i < k; i++)
+    {
+#ifdef VERBOSE
+        reset();
+        printf("Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
+#endif
+        fprintf(fp, "Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
     }
 }
