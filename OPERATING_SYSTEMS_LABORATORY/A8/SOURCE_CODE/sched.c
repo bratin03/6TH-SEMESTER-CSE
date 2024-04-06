@@ -22,24 +22,37 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#define DEBUG
-#define VERBOSE
 
+// #define VERBOSE
+// Run with VERBOSE defined for detailed output
+
+/**
+ * Sets the text color to purple.
+ */
 void purple()
 {
     printf("\033[1;35m");
 }
 
+/**
+ * Sets the text color to green.
+ */
 void green()
 {
     printf("\033[1;32m");
 }
 
+/**
+ * Sets the text color to red.
+ */
 void red()
 {
     printf("\033[1;31m");
 }
 
+/**
+ * Resets the text color to default.
+ */
 void reset()
 {
     printf("\033[0m");
@@ -47,20 +60,28 @@ void reset()
 
 #define V(s) semop(s, &vop, 1)
 
+// Structure for message queue 1
 typedef struct MQ1
 {
-    long type;
-    int pid;
-    int processNo;
+    long type;     /**< Type of message */
+    int pid;       /**< Process ID */
+    int processNo; /**< Process number */
 } MQ1;
 
+// Structure for message queue 2
 typedef struct MQ2
 {
-    long type;
-    int pid;
-    int processNo;
+    long type;     /**< Type of message */
+    int pid;       /**< Process ID */
+    int processNo; /**< Process number */
 } MQ2;
 
+/**
+ * The main function.
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @return The exit status of the program.
+ */
 int main(int argc, char *argv[])
 {
     struct sembuf vop;
@@ -78,13 +99,13 @@ int main(int argc, char *argv[])
     int msgid2 = atoi(argv[2]);
     int k = atoi(argv[3]);
 
-    key_t key = ftok("master.c", 6);
-    int semid4 = semget(key, 1, IPC_CREAT | 0666);
+    key_t key = ftok("master.c", 4);
+    int semid = semget(key, 1, IPC_CREAT | 0666);
 
     int *semid1 = (int *)malloc(sizeof(int) * k);
     for (int i = 0; i < k; i++)
     {
-        key = ftok("master.c", i + 10);
+        key = ftok("master.c", i + 8);
         semid1[i] = semget(key, 1, IPC_CREAT | 0666);
     }
 
@@ -134,7 +155,7 @@ int main(int argc, char *argv[])
     reset();
 #endif
 
-    V(semid4);
+    V(semid);
 
     exit(EXIT_SUCCESS);
 }

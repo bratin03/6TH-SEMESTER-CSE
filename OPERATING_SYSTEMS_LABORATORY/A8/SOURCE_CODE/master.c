@@ -24,19 +24,28 @@
 #include <time.h>
 #include <limits.h>
 
-// #define DEBUG
 // #define VERBOSE
+// Run the program with VERBOSE defined to see the output of the program
 
+/**
+ * Sets the text color to cyan.
+ */
 void cyan()
 {
     printf("\033[1;36m");
 }
 
+/**
+ * Sets the text color to yellow.
+ */
 void yellow()
 {
     printf("\033[1;33m");
 }
 
+/**
+ * Resets the text color to the default.
+ */
 void reset()
 {
     printf("\033[0m");
@@ -53,21 +62,28 @@ struct sembuf pop;
 int sched_PID = -1;
 int mmu_PID = -1;
 
+// Structure for Page Table
 typedef struct PageTable
 {
-    int pid;
-    int totalPageFaults;
-    int totalInvalidAccess;
-    int pagetable[MAX_PAGE_PER_PROCESS][3];
+    int pid;                                /**< Process ID */
+    int totalPageFaults;                    /**< Total number of page faults */
+    int totalInvalidAccess;                 /**< Total number of invalid accesses */
+    int pagetable[MAX_PAGE_PER_PROCESS][3]; /**< Page Table */
 } PageTable;
 
+// Structure for message queue 2
 typedef struct MQ2
 {
-    long type;
-    int pid;
-    int processNo;
+    long type;     /**< Type of message */
+    int pid;       /**< Process ID */
+    int processNo; /**< Process number */
 } MQ2;
 
+/**
+ * Returns 1 with probability prob, else returns 0.
+ * @param prob The probability of returning 1.
+ * @return 1 with probability prob, else returns 0.
+ */
 int corruptPage(float prob)
 {
     if (((double)rand() / RAND_MAX) < prob)
@@ -77,6 +93,12 @@ int corruptPage(float prob)
     return 0;
 }
 
+/**
+ * Returns the minimum of two integers.
+ * @param a The first integer.
+ * @param b The second integer.
+ * @return The minimum of two integers.
+ */
 int min(int a, int b)
 {
     return a < b ? a : b;
@@ -86,9 +108,7 @@ int shmid1 = -1;
 int shmid2 = -1;
 int shmid3 = -1;
 int *semid1 = NULL;
-int semid2 = -1;
-int semid3 = -1;
-int semid4 = -1;
+int semSched = -1;
 int msgid1 = -1;
 int msgid2 = -1;
 int msgid3 = -1;
@@ -98,6 +118,9 @@ int *SM3 = NULL;
 
 int k, m, f;
 
+/**
+ * Cleans up the shared memory, semaphores and message queues.
+ */
 void cleanUp()
 {
     if (sched_PID != -1)
@@ -123,12 +146,8 @@ void cleanUp()
             semctl(semid1[i], 0, IPC_RMID, 0);
         }
     }
-    if (semid2 != -1)
-        semctl(semid2, 0, IPC_RMID, 0);
-    if (semid3 != -1)
-        semctl(semid3, 0, IPC_RMID, 0);
-    if (semid4 != -1)
-        semctl(semid4, 0, IPC_RMID, 0);
+    if (semSched != -1)
+        semctl(semSched, 0, IPC_RMID, 0);
     if (msgid1 != -1)
         msgctl(msgid1, IPC_RMID, NULL);
     if (msgid2 != -1)
@@ -137,6 +156,10 @@ void cleanUp()
         msgctl(msgid3, IPC_RMID, NULL);
 }
 
+/**
+ * Signal handler for SIGINT and SIGQUIT.
+ * @param signum The signal number.
+ */
 void sighand(int signum)
 {
 
@@ -148,15 +171,18 @@ void sighand(int signum)
         printf("Master: Cleaning up\n");
         printf("Master: Sending signal to Scheduler and Memory Management Unit\n");
         printf("Master: Detaching and removing shared memory\n");
-        printf("Master: Removing semaphores\n");
+        prftokintf("Master: Removing semaphores\n");
         printf("Master: Removing message queues\n");
-        reset();
+        reftokset();
 #endif
         cleanUp();
         exit(EXIT_FAILURE);
     }
 }
 
+/**
+ * Takes iftoknput from the user.
+ */
 void takeInput()
 {
     printf("Enter the Total number of Processes: ");
@@ -179,6 +205,9 @@ void takeInput()
     }
 }
 
+/**
+ * Initializes the shared memory, semaphores and message queues.
+ */
 void initSharedMemory()
 {
     key_t key = ftok("master.c", 1);
@@ -190,7 +219,7 @@ void initSharedMemory()
         SM1[i].pid = 0;
     }
 
-    key = ftok("master.c", 20);
+    key = ftok("master.c", 2);
     shmid2 = shmget(key, (f + 1) * sizeof(int), IPC_CREAT | 0666);
     SM2 = (int *)shmat(shmid2, NULL, 0);
 
@@ -210,34 +239,25 @@ void initSharedMemory()
     }
 
     key = ftok("master.c", 4);
-    semid2 = semget(key, 1, IPC_CREAT | 0666);
-    semctl(semid2, 0, SETVAL, 0);
+    semSched = semget(key, 1, IPC_CREAT | 0666);
+    semctl(semSched, 0, SETVAL, 0);
 
     key = ftok("master.c", 5);
-    semid3 = semget(key, 1, IPC_CREAT | 0666);
-    semctl(semid3, 0, SETVAL, 0);
-
-    key = ftok("master.c", 6);
-    semid4 = semget(key, 1, IPC_CREAT | 0666);
-    semctl(semid4, 0, SETVAL, 0);
-
-    key = ftok("master.c", 7);
     msgid1 = msgget(key, IPC_CREAT | 0666);
 
-    key = ftok("master.c", 8);
+    key = ftok("master.c", 6);
     msgid2 = msgget(key, IPC_CREAT | 0666);
 
-    key = ftok("master.c", 9);
+    key = ftok("master.c", 7);
     msgid3 = msgget(key, IPC_CREAT | 0666);
 
     semid1 = (int *)malloc(k * sizeof(int));
     for (int i = 0; i < k; i++)
     {
-        key = ftok("master.c", i + 10);
+        key = ftok("master.c", i + 8);
         semid1[i] = semget(key, 1, IPC_CREAT | 0666);
         semctl(semid1[i], 0, SETVAL, 0);
     }
-
 #ifdef VERBOSE
     cyan();
     printf("Master: Created Shared Memory, Semaphores and Message Queues\n");
@@ -245,6 +265,15 @@ void initSharedMemory()
 #endif
 }
 
+/**
+ * Allocates frames to the processes in proportion to the size of the process.
+ * @param SM1 The Page Table.
+ * @param SM2 The Physical Address Space.
+ * @param SM3 The Virtual Address Space.
+ * @param totalPages The total number of pages.
+ * @param k The total number of processes.
+ * @param f The total number of frames.
+ */
 void proportional_allocation(PageTable *SM1, int *SM2, int *SM3, int *totalPages, int k, int f)
 {
     int processNumAlloc[k];
@@ -252,8 +281,10 @@ void proportional_allocation(PageTable *SM1, int *SM2, int *SM3, int *totalPages
     {
         double temp = ((double)SM3[i] / (*totalPages)) * f;
         processNumAlloc[i] = min((int)temp, SM3[i]);
-#ifdef DEBUG
+#ifdef VERBOSE
+        yellow();
         printf("Process No %d: Number of Frames Allocated: %d\n", i + 1, processNumAlloc[i]);
+        reset();
 #endif
     }
     int last_frame_allocated = 0;
@@ -266,11 +297,22 @@ void proportional_allocation(PageTable *SM1, int *SM2, int *SM3, int *totalPages
             last_frame_allocated++;
         }
     }
-#ifdef DEBUG
+#ifdef VERBOSE
+    yellow();
     printf("Free Frames: %d\n", f - last_frame_allocated);
+    reset();
 #endif
 }
 
+/**
+ * Creates the page reference string for each process.
+ * @param refi The page reference string.
+ * @param refString The page reference string in string format.
+ * @param k The total number of processes.
+ * @param m The Virtual Address Space size.
+ * @param SM3 The Virtual Address Space.
+ * @param totalPages The total number of pages.
+ */
 void createPageRef(int **refi, char **refString, int k, int m, int *SM3, int *totalPages)
 {
     for (int i = 0; i < k; i++)
@@ -325,14 +367,24 @@ void createPageRef(int **refi, char **refString, int k, int m, int *SM3, int *to
             strcat(refString[i], ".");
         }
         strcat(refString[i], "$");
-#ifdef DEBUG
+#ifdef VERBOSE
+        cyan();
         printf("Virtual Address Space for Process %d: %d\n", i + 1, SM3[i]);
+        yellow();
         printf("Ref String for Process %d: %s\n", i + 1, refString[i]);
+        reset();
 #endif
         free(digits);
     }
 }
 
+/**
+ * Creates the processes.
+ * @param refstr The page reference string.
+ * @param msgid1str The message queue 1 ID in string format.
+ * @param msgid3str The message queue 3 ID in string format.
+ * @param k The total number of processes.
+ */
 void createProcess(char **refstr, char *msgid1str, char *msgid3str, int k)
 {
     for (int i = 0; i < k; i++)
@@ -347,6 +399,11 @@ void createProcess(char **refstr, char *msgid1str, char *msgid3str, int k)
         {
             char processNoStr[10];
             sprintf(processNoStr, "%d", i);
+#ifdef VERBOSE
+            cyan();
+            printf("Master: Creating Process %d\n", i);
+            reset();
+#endif
             execlp("./process", "./process", refstr[i], msgid1str, msgid3str, processNoStr, NULL);
             perror("execlp");
             exit(EXIT_FAILURE);
@@ -354,6 +411,10 @@ void createProcess(char **refstr, char *msgid1str, char *msgid3str, int k)
     }
 }
 
+/**
+ * The main function.
+ * @return The exit status of the program.
+ */
 int main()
 {
     srand(time(NULL));
@@ -419,7 +480,7 @@ int main()
     proportional_allocation(SM1, SM2, SM3, totalPages, k, f);
     createProcess(refString, msgid1String, msgid3String, k);
 
-    P(semid4);
+    P(semSched);
 
     cleanUp();
 

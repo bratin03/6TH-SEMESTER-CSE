@@ -22,19 +22,9 @@
 #include <sys/types.h>
 #include <signal.h>
 
-// #define DEBUG
 // #define VERBOSE
 // Run with VERBOSE defined for detailed output
 
-/**
- * Macro definition for performing a semaphore operation.
- *
- * This macro is used to perform a semaphore operation on the specified semaphore.
- * It takes two arguments: the semaphore identifier and the semaphore operation.
- * The semaphore operation is performed using the semop() function.
- *
- * @param s The semaphore identifier.
- */
 #define P(s) semop(s, &pop, 1)
 
 /**
@@ -77,29 +67,29 @@ void reset()
     printf("\033[0m");
 }
 
-/**
- * @file process.c
- * @brief Contains the definition of two structures: MQ1 and MQ3.
- *
- * The MQ1 structure represents a message queue with three fields: type, pid, and processNo.
- * The MQ3 structure represents a message queue with four fields: type, Request, pid, and processNo.
- */
+// Structure for the message queue 1
 typedef struct MQ1
 {
-    long type;        /**< The type of the message queue. */
-    int pid;          /**< The process ID. */
-    int processNo;    /**< The process number. */
+    long type;     /**< The type of the message queue. */
+    int pid;       /**< The process ID. */
+    int processNo; /**< The process number. */
 } MQ1;
 
+// Structure for the message queue 3
 typedef struct MQ3
 {
-    long type;        /**< The type of the message queue. */
-    int Request;      /**< The request. */
-    int pid;          /**< The process ID. */
-    int processNo;    /**< The process number. */
+    long type;     /**< The type of the message queue. */
+    int Request;   /**< The request. */
+    int pid;       /**< The process ID. */
+    int processNo; /**< The process number. */
 } MQ3;
 
-
+/**
+ * The main function.
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @return The exit status.
+ */
 int main(int argc, char *argv[])
 {
     struct sembuf pop;
@@ -119,7 +109,7 @@ int main(int argc, char *argv[])
     int msgid3 = atoi(argv[3]);
     int processNo = atoi(argv[4]);
 
-    key_t key = ftok("master.c", 10 + processNo);
+    key_t key = ftok("master.c", 8 + processNo);
     int semid = semget(key, 1, IPC_CREAT | 0666);
 
     int pid = getpid();
@@ -166,7 +156,7 @@ int main(int argc, char *argv[])
 
         Page_Request.Request = j;
         msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
-        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 0, 0);
+        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 2, 0);
 
         if (Page_Request.Request == -2)
         {

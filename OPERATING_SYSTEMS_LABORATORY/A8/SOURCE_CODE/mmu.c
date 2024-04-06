@@ -25,43 +25,52 @@
 
 #define VERBOSE
 // #define DEBUG
+// Run with DEBUG defined for detailed output
 
 #define MAX_PAGE_PER_PROCESS 10000
-
 #define OUTPUT_FILE "result.txt"
 
+/**
+ * Sets the text color to default.
+ */
 void reset()
 {
     printf("\033[0m");
 }
 
+// Structure for Page Table
 typedef struct PageTable
 {
-    int pid;
-    int totalPageFaults;
-    int totalInvalidAccess;
-    int pagetable[MAX_PAGE_PER_PROCESS][3];
+    int pid;                                /**< Process ID */
+    int totalPageFaults;                    /**< Total number of page faults */
+    int totalInvalidAccess;                 /**< Total number of invalid accesses */
+    int pagetable[MAX_PAGE_PER_PROCESS][3]; /**< Page Table */
 } PageTable;
-
+// Structure for Message Queue 2
 typedef struct MQ2
 {
-    long type;
-    int pid;
-    int processNo;
+    long type;     /**< Type of message */
+    int pid;       /**< Process ID */
+    int processNo; /**< Process Number */
 } MQ2;
 
+// Structure for Message Queue 3
 typedef struct MQ3
 {
-    long type;
-    int Request;
-    int pid;
-    int processNo;
+    long type;     /**< Type of message */
+    int Request;   /**< Request */
+    int pid;       /**< Process ID */
+    int processNo; /**< Process Number */
 } MQ3;
 
 FILE *fp;
 int k;
 PageTable *SM1;
 
+/**
+ * Signal handler for SIGINT and SIGQUIT.
+ * @param signo The signal number.
+ */
 void sig_handler(int signo)
 {
     if (signo == SIGINT || signo == SIGQUIT)
@@ -84,6 +93,11 @@ void sig_handler(int signo)
     }
 }
 
+/**
+ * Finds a free frame in the memory.
+ * @param SM2 The shared memory 2.
+ * @return The free frame number.
+ */
 int findFreeFrame(int *SM2)
 {
     int j = 0;
@@ -103,6 +117,16 @@ int findFreeFrame(int *SM2)
     return j;
 }
 
+/**
+ * Handles the page fault.
+ * @param SM1 The shared memory 1.
+ * @param SM2 The shared memory 2.
+ * @param SM3 The shared memory 3.
+ * @param T The timestamp.
+ * @param processNo The process number.
+ * @param frameNo The frame number.
+ * @return 1 if the page fault is handled, 0 otherwise.
+ */
 int PageFaultHandler(PageTable *SM1, int *SM2, int *SM3, int T, int processNo, int frameNo)
 {
 
@@ -199,6 +223,13 @@ int PageFaultHandler(PageTable *SM1, int *SM2, int *SM3, int T, int processNo, i
     return 0;
 }
 
+/**
+ * Frees the resources of a process.
+ * @param SM1 The shared memory 1.
+ * @param SM2 The shared memory 2.
+ * @param SM3 The shared memory 3.
+ * @param processNo The process number.
+ */
 void freeProcessResources(PageTable *SM1, int *SM2, int *SM3, int processNo)
 {
     for (int j = 0; j < SM3[processNo]; j++)
@@ -217,6 +248,12 @@ void freeProcessResources(PageTable *SM1, int *SM2, int *SM3, int processNo)
     }
 }
 
+/**
+ * The main function.
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @return 0, to terminate the program.
+ */
 int main(int argc, char *argv[])
 {
     int T = 0;
@@ -252,8 +289,8 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 0, 0);
-
+        msgrcv(msgid3, (void *)&Page_Request, sizeof(MQ3), 1, 0);
+        Page_Request.type = 2;
         int i = Page_Request.processNo;
         int page = Page_Request.Request;
         if (page != -9)
@@ -269,7 +306,7 @@ int main(int argc, char *argv[])
         {
 #ifdef DEBUG
             reset();
-            printf("\tMMU: Received kill signal for process %d\n", i + 1);
+            printf("\tMMU: Process %d Terminated\n", i + 1);
 #endif
             freeProcessResources(SM1, SM2, SM3, i);
             msg2.type = 2;
@@ -279,6 +316,10 @@ int main(int argc, char *argv[])
         }
         else if (page >= SM3[i])
         {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
+#endif
             SM1[i].totalInvalidAccess++;
             Page_Request.Request = -2;
             msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
@@ -305,6 +346,11 @@ int main(int argc, char *argv[])
         }
         else
         {
+#ifdef DEBUG
+            reset();
+            printf("\tMMU: Page Fault - (Process %d, Page %d)\n", i + 1, page);
+#endif
+
             SM1[i].totalPageFaults++;
             Page_Request.Request = -1;
             msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);

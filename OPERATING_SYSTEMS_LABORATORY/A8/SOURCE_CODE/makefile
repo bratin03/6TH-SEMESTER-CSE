@@ -12,7 +12,7 @@
 # ***********************************************************/
 
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g 
 
 all: master mmu sched process
 	./master
@@ -31,3 +31,8 @@ process: process.c
 
 clean:
 	rm -f master mmu sched process
+
+distclean: clean
+	rm -f *.txt
+
+
