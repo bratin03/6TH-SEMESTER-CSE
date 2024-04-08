@@ -22,8 +22,10 @@
 #include <sys/types.h>
 #include <signal.h>
 
-// #define VERBOSE
+#define VERBOSE
 // Run with VERBOSE defined for detailed output
+
+#define TOKEN_PATH "/usr/bin"
 
 #define P(s) semop(s, &pop, 1)
 
@@ -109,7 +111,7 @@ int main(int argc, char *argv[])
     int msgid3 = atoi(argv[3]);
     int processNo = atoi(argv[4]);
 
-    key_t key = ftok("master.c", 8 + processNo);
+    key_t key = ftok(TOKEN_PATH, 8 + processNo);
     int semid = semget(key, 1, IPC_CREAT | 0666);
 
     int pid = getpid();
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
 
 #ifdef VERBOSE
     blue();
-    printf("\t\t\tProcess %d with Process No %d Created\n", pid, processNo + 1);
+    printf("\t\t\tProcess: Process %d with Process No %d Created\n", pid, processNo + 1);
     reset();
 #endif
 
@@ -150,7 +152,7 @@ int main(int argc, char *argv[])
 
 #ifdef VERBOSE
         pink();
-        printf("\t\t\tProcess %d with Process No %d Requesting Page %d\n", pid, processNo + 1, j);
+        printf("\t\t\tProcess: Process %d with Process No %d Requesting Page %d\n", pid, processNo + 1, j);
         reset();
 #endif
 
@@ -162,7 +164,7 @@ int main(int argc, char *argv[])
         {
 #ifdef VERBOSE
             red();
-            printf("\t\t\tProcess %d with Process No %d Terminated for Illegal Access to Page %d\n", pid, processNo + 1, j);
+            printf("\t\t\tProcess: Process %d with Process No %d Terminated for Illegal Access to Page %d\n", pid, processNo + 1, j);
             reset();
 #endif
             exit(EXIT_FAILURE);
@@ -171,7 +173,7 @@ int main(int argc, char *argv[])
         {
 #ifdef VERBOSE
             red();
-            printf("\t\t\tProcess %d with Process No %d Page Fault for Page %d\n", pid, processNo, j);
+            printf("\t\t\tProcess: Process %d with Process No %d Page Fault for Page %d\n", pid, processNo, j);
             reset();
 #endif
             isPageFault = 1;
@@ -182,7 +184,7 @@ int main(int argc, char *argv[])
         {
 #ifdef VERBOSE
             green();
-            printf("\t\t\tProcess %d with Process No %d Got Frame %d for Page %d\n", pid, processNo + 1, Page_Request.Request, j);
+            printf("\t\t\tProcess: Process %d with Process No %d Got Frame %d for Page %d\n", pid, processNo + 1, Page_Request.Request, j);
             reset();
 #endif
             isPageFault = 0;
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
 
 #ifdef VERBOSE
     green();
-    printf("\t\t\tProcess %d with Process No %d Received all Pages\n", pid, processNo + 1);
+    printf("\t\t\tProcess: Process %d with Process No %d Received all Pages\n", pid, processNo + 1);
     reset();
 #endif
 
@@ -204,7 +206,7 @@ int main(int argc, char *argv[])
     msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
 #ifdef VERBOSE
     green();
-    printf("\t\t\tProcess %d with Process No %d Terminated after completing all Pages\n", pid, processNo + 1);
+    printf("\t\t\tProcess: Process %d with Process No %d Terminated after completing all Pages\n", pid, processNo + 1);
     reset();
 #endif
 

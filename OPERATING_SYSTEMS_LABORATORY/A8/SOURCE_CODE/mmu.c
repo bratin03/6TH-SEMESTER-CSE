@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <limits.h>
 
+#define DISPLAY
 #define VERBOSE
 // #define DEBUG
 // Run with DEBUG defined for detailed output
@@ -76,9 +77,14 @@ void sig_handler(int signo)
     if (signo == SIGINT || signo == SIGQUIT)
     {
 
+#ifdef DISPLAY
+        reset();
+        printf("\n");
+        fprintf(fp, "\n");
+#endif
         for (int i = 0; i < k; i++)
         {
-#ifdef VERBOSE
+#ifdef DISPLAY
             reset();
             printf("Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
 #endif
@@ -296,7 +302,7 @@ int main(int argc, char *argv[])
         if (page != -9)
         {
             T++;
-#ifdef VERBOSE
+#ifdef DISPLAY
             reset();
             printf("Global Ordering - (Timestamp %d, Process %d, Page %d)\n", T, i + 1, page);
 #endif
@@ -316,6 +322,10 @@ int main(int argc, char *argv[])
         }
         else if (page >= SM3[i])
         {
+#ifdef VERBOSE
+            reset();
+            printf("TRYING TO ACCESS INVALID PAGE REFERENCE\n");
+#endif
 #ifdef DEBUG
             reset();
             printf("\tMMU: Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
@@ -323,7 +333,7 @@ int main(int argc, char *argv[])
             SM1[i].totalInvalidAccess++;
             Page_Request.Request = -2;
             msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
-#ifdef VERBOSE
+#ifdef DISPLAY
             reset();
             printf("Invalid Page Reference - (Process %d, Page %d)\n", i + 1, page);
 #endif
@@ -354,7 +364,7 @@ int main(int argc, char *argv[])
             SM1[i].totalPageFaults++;
             Page_Request.Request = -1;
             msgsnd(msgid3, (void *)&Page_Request, sizeof(MQ3), 0);
-#ifdef VERBOSE
+#ifdef DISPLAY
             reset();
             printf("Page fault sequence - (Process %d, Page %d)\n", i + 1, page);
 #endif
@@ -370,7 +380,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < k; i++)
     {
-#ifdef VERBOSE
+#ifdef DISPLAY
         reset();
         printf("Process %d: Total Page Faults: %d, Total Invalid Access: %d\n", i + 1, SM1[i].totalPageFaults, SM1[i].totalInvalidAccess);
 #endif

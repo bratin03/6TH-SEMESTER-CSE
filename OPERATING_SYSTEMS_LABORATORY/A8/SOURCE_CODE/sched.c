@@ -22,9 +22,10 @@
 #include <sys/types.h>
 #include <signal.h>
 
-
-// #define VERBOSE
+#define VERBOSE
 // Run with VERBOSE defined for detailed output
+
+#define TOKEN_PATH "/usr/bin"
 
 /**
  * Sets the text color to purple.
@@ -99,13 +100,13 @@ int main(int argc, char *argv[])
     int msgid2 = atoi(argv[2]);
     int k = atoi(argv[3]);
 
-    key_t key = ftok("master.c", 4);
+    key_t key = ftok(TOKEN_PATH, 4);
     int semid = semget(key, 1, IPC_CREAT | 0666);
 
     int *semid1 = (int *)malloc(sizeof(int) * k);
     for (int i = 0; i < k; i++)
     {
-        key = ftok("master.c", i + 8);
+        key = ftok(TOKEN_PATH, i + 8);
         semid1[i] = semget(key, 1, IPC_CREAT | 0666);
     }
 

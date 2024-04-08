@@ -24,9 +24,12 @@
 #include <time.h>
 #include <limits.h>
 
-// #define VERBOSE
+#define VERBOSE
 // Run the program with VERBOSE defined to see the output of the program
 
+/*
+Funtions for printing colored text
+*/
 /**
  * Sets the text color to cyan.
  */
@@ -51,10 +54,11 @@ void reset()
     printf("\033[0m");
 }
 
-#define PROB 0.01
-#define MAX_PAGE_PER_PROCESS 10000
-#define MAX_INT_DIGITS 20
-#define PROCESS_GAP 250000
+#define CORRUPT_PROBABILITY 0.01   // Probability of a page being corrupted
+#define MAX_PAGE_PER_PROCESS 10000 // Maximum number of pages per process
+#define MAX_INT_DIGITS 20          // Maximum number of digits in an integer
+#define PROCESS_GAP 250000         // Gap between creating two processes (in microseconds)
+#define TOKEN_PATH "/usr/bin"
 
 struct sembuf pop;
 #define P(s) semop(s, &pop, 1)
@@ -104,6 +108,7 @@ int min(int a, int b)
     return a < b ? a : b;
 }
 
+// Global variables for shared memory, semaphores and message queues
 int shmid1 = -1;
 int shmid2 = -1;
 int shmid3 = -1;
@@ -116,6 +121,7 @@ PageTable *SM1 = NULL;
 int *SM2 = NULL;
 int *SM3 = NULL;
 
+// Global variables for the total number of processes, virtual address space size and physical address space size
 int k, m, f;
 
 /**
@@ -123,6 +129,15 @@ int k, m, f;
  */
 void cleanUp()
 {
+#ifdef VERBOSE
+    cyan();
+    printf("Master: Cleaning up\n");
+    printf("Master: Sending signal to Scheduler and Memory Management Unit\n");
+    printf("Master: Detaching and removing shared memory\n");
+    printf("Master: Removing semaphores\n");
+    printf("Master: Removing message queues\n");
+    reset();
+#endif
     if (sched_PID != -1)
         kill(sched_PID, SIGINT);
     if (mmu_PID != -1)
@@ -168,12 +183,7 @@ void sighand(int signum)
 #ifdef VERBOSE
         yellow();
         printf("\nMaster: Received signal %d\n", signum);
-        printf("Master: Cleaning up\n");
-        printf("Master: Sending signal to Scheduler and Memory Management Unit\n");
-        printf("Master: Detaching and removing shared memory\n");
-        prftokintf("Master: Removing semaphores\n");
-        printf("Master: Removing message queues\n");
-        reftokset();
+        reset();
 #endif
         cleanUp();
         exit(EXIT_FAILURE);
@@ -181,7 +191,7 @@ void sighand(int signum)
 }
 
 /**
- * Takes iftoknput from the user.
+ * Takes input from the user.
  */
 void takeInput()
 {
@@ -210,7 +220,7 @@ void takeInput()
  */
 void initSharedMemory()
 {
-    key_t key = ftok("master.c", 1);
+    key_t key = ftok(TOKEN_PATH, 1);
     shmid1 = shmget(key, k * sizeof(PageTable), IPC_CREAT | 0666);
     SM1 = (PageTable *)shmat(shmid1, NULL, 0);
 
@@ -219,7 +229,7 @@ void initSharedMemory()
         SM1[i].pid = 0;
     }
 
-    key = ftok("master.c", 2);
+    key = ftok(TOKEN_PATH, 2);
     shmid2 = shmget(key, (f + 1) * sizeof(int), IPC_CREAT | 0666);
     SM2 = (int *)shmat(shmid2, NULL, 0);
 
@@ -229,7 +239,7 @@ void initSharedMemory()
     }
     SM2[f] = -1;
 
-    key = ftok("master.c", 3);
+    key = ftok(TOKEN_PATH, 3);
     shmid3 = shmget(key, k * sizeof(int), IPC_CREAT | 0666);
     SM3 = (int *)shmat(shmid3, NULL, 0);
 
@@ -238,23 +248,23 @@ void initSharedMemory()
         SM3[i] = 0;
     }
 
-    key = ftok("master.c", 4);
+    key = ftok(TOKEN_PATH, 4);
     semSched = semget(key, 1, IPC_CREAT | 0666);
     semctl(semSched, 0, SETVAL, 0);
 
-    key = ftok("master.c", 5);
+    key = ftok(TOKEN_PATH, 5);
     msgid1 = msgget(key, IPC_CREAT | 0666);
 
-    key = ftok("master.c", 6);
+    key = ftok(TOKEN_PATH, 6);
     msgid2 = msgget(key, IPC_CREAT | 0666);
 
-    key = ftok("master.c", 7);
+    key = ftok(TOKEN_PATH, 7);
     msgid3 = msgget(key, IPC_CREAT | 0666);
 
     semid1 = (int *)malloc(k * sizeof(int));
     for (int i = 0; i < k; i++)
     {
-        key = ftok("master.c", i + 8);
+        key = ftok(TOKEN_PATH, i + 8);
         semid1[i] = semget(key, 1, IPC_CREAT | 0666);
         semctl(semid1[i], 0, SETVAL, 0);
     }
@@ -276,17 +286,20 @@ void initSharedMemory()
  */
 void proportional_allocation(PageTable *SM1, int *SM2, int *SM3, int *totalPages, int k, int f)
 {
+    // Proportional Allocation
     int processNumAlloc[k];
     for (int i = 0; i < k; i++)
     {
+        // Calculate the fraction of the total number of pages
         double temp = ((double)SM3[i] / (*totalPages)) * f;
-        processNumAlloc[i] = min((int)temp, SM3[i]);
+        processNumAlloc[i] = min((int)temp, SM3[i]); // Allocate the minimum of the calculated value and the total number of pages required by the process
 #ifdef VERBOSE
         yellow();
         printf("Process No %d: Number of Frames Allocated: %d\n", i + 1, processNumAlloc[i]);
         reset();
 #endif
     }
+    // Allocate the frames to the processes (Don't load the pages into the frames)
     int last_frame_allocated = 0;
     for (int i = 0; i < k; i++)
     {
@@ -335,7 +348,7 @@ void createPageRef(int **refi, char **refString, int k, int m, int *SM3, int *to
         {
             refi[i][j] = rand() % SM3[i];
 
-            if (corruptPage(PROB))
+            if (corruptPage(CORRUPT_PROBABILITY))
             {
                 refi[i][j] = rand() % m;
             }
@@ -415,8 +428,19 @@ void createProcess(char **refstr, char *msgid1str, char *msgid3str, int k)
  * The main function.
  * @return The exit status of the program.
  */
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc != 4 && argc != 1)
+    {
+        fprintf(stderr, "Invalid number of arguments\n");
+        fprintf(stderr, "To give the number of processes, virtual address space size and physical address space size as command line arguments\n");
+        fprintf(stderr, "Usage: %s <k> <m> <f>\n", argv[0]);
+        fprintf(stderr, "Or\n");
+        fprintf(stderr, "To take input from the user\n");
+        fprintf(stderr, "Usage: %s\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     srand(time(NULL));
     signal(SIGINT, sighand);
     signal(SIGQUIT, sighand);
@@ -424,7 +448,17 @@ int main()
     pop.sem_op = -1;
     pop.sem_flg = 0;
 
-    takeInput();
+    if (argc == 4)
+    {
+        k = atoi(argv[1]);
+        m = atoi(argv[2]);
+        f = atoi(argv[3]);
+    }
+    else
+    {
+        takeInput();
+    }
+
     initSharedMemory();
 
     char msgid1String[MAX_INT_DIGITS], msgid2String[MAX_INT_DIGITS], msgid3String[MAX_INT_DIGITS];
@@ -463,7 +497,7 @@ int main()
     mmu_PID = fork();
     if (mmu_PID == 0)
     {
-        execlp("xterm", "xterm", "-T", "Memory Management Unit", "-e", "./mmu", msgid2String, msgid3String, shmid1String, shmid2String, shmid3String, Stringk, NULL);
+        execlp("xterm", "xterm", "-T", "MMU", "-e", "./mmu", msgid2String, msgid3String, shmid1String, shmid2String, shmid3String, Stringk, NULL);
         perror("execlp");
         exit(EXIT_FAILURE);
     }
