@@ -33,7 +33,7 @@
 #define WAIT_TIME 1
 #define MAX_RETRY 3
 
-#define PARALLEL_IO_SUPPORT // Prevent Race Condition in I/O for terminal input and response output
+// #define PARALLEL_IO_SUPPORT // Prevent Race Condition in I/O for terminal input and response output
 
 // #define VERBOSE
 
@@ -271,12 +271,21 @@ int isValidDomain(const unsigned char *buffer, unsigned char **domain_names, int
 query_table_entry *process_query(unsigned char *query, unsigned short query_id)
 {
     char *token = strtok((char *)query, " ");
+    if (token == NULL)
+    {
+        return NULL;
+    }
     if (strcmp(token, "getIP") != 0)
     {
         fprintf(stderr, ">> Error: Invalid query syntax\n");
         return NULL;
     }
     token = strtok(NULL, " ");
+    if (token == NULL)
+    {
+        fprintf(stderr, ">> Error: No query number provided\n");
+        return NULL;
+    }
     int query_num = atoi(token);
 
 #ifdef DEBUG_INPUT
