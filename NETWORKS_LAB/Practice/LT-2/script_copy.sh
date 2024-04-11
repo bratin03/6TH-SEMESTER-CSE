@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Define the range of IP addresses
-start_ip="10.5.16.145"
-end_ip="10.5.16.146"
+start_ip="10.5.16.141"
+end_ip="10.5.16.160"
 
 # Define the file to copy
-file_to_copy="./.cse"
+file_to_copy="./script_copy.sh"
 
 # Define the username to use for SSH login
 username="user"
