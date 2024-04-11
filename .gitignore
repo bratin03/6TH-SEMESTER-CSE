@@ -71,3 +71,5 @@ a.out
 *.a
 
 *.jar
+
+*/script_copy.sh
