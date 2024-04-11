@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <limits.h>
+
+int readInt(int sockfd)
+{
+    int n;
+    int bytes = recv(sockfd, &n, sizeof(n), 0);
+    if (bytes < 0)
+    {
+        perror("Error reading from socket");
+        exit(1);
+    }
+    if (bytes == 0)
+    {
+        return INT_MIN;
+    }
+    return ntohl(n);
+}
+
+void writeInt(int sockfd, int n)
+{
+    n = htonl(n);
+    int bytes = send(sockfd, &n, sizeof(n), 0);
+    if (bytes < 0)
+    {
+        perror("Error writing to socket");
+        exit(1);
+    }
+}
+
+int readUntilChar(int sockfd, char *buff, char c)
+{
+    int i = 0;
+    while (1)
+    {
+        int bytes = recv(sockfd, buff + i, 1, 0);
+        if (bytes < 0)
+        {
+            perror("Error reading from socket");
+            exit(1);
+        }
+        if (bytes == 0)
+        {
+            return -1;
+        }
+        if (buff[i] == c)
+        {
+            buff[i] = '\0';
+            return i;
+        }
+        i++;
+    }
+}
