@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import time
 
+
 def cosine_similarity(v1, v2):
     """
     Calculates the cosine similarity between two vectors.
@@ -21,6 +22,7 @@ def cosine_similarity(v1, v2):
     float: The cosine similarity between the two vectors.
     """
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
 
 def DataLoader(file_path="../DATASET/country.csv"):
     """
@@ -36,6 +38,7 @@ def DataLoader(file_path="../DATASET/country.csv"):
     attributes = data.columns
     entries = data.values
     return attributes, entries
+
 
 def sort_clusters(names_clusters, clusters):
     """
@@ -57,6 +60,7 @@ def sort_clusters(names_clusters, clusters):
     sorted_names_clusters = [sorted(names) for names in names_clusters]
     return sorted_names_clusters, sorted_clusters
 
+
 def K_Means_Clustering(k, entries, itr=20, random_seed=2):
     """
     Perform K-means clustering on a given dataset.
@@ -73,10 +77,14 @@ def K_Means_Clustering(k, entries, itr=20, random_seed=2):
     - centroids (ndarray): An array of centroid vectors representing the final centroids of each cluster.
     """
     entry_without_country = [entry[1:] for entry in entries]
-    names = [entry[0] for entry in entries] 
+    names = [entry[0] for entry in entries]
     np.random.seed(random_seed)
-    centroids = np.array([entry_without_country[i] for i in np.random.choice(
-        len(entry_without_country), k, replace=False)])
+    centroids = np.array(
+        [
+            entry_without_country[i]
+            for i in np.random.choice(len(entry_without_country), k, replace=False)
+        ]
+    )
 
     for _ in range(itr):
         clusters = [[] for _ in range(k)]
@@ -94,7 +102,9 @@ def K_Means_Clustering(k, entries, itr=20, random_seed=2):
         new_centroids = [np.mean(cluster, axis=0) for cluster in clusters]
         if np.array_equal(centroids, new_centroids):
             break
+        centroids = new_centroids
     return names_clusters, clusters, centroids
+
 
 def write_clusters_to_file(names_clusters, clusters, centroids, file_path):
     """
@@ -112,17 +122,18 @@ def write_clusters_to_file(names_clusters, clusters, centroids, file_path):
     with open(file_path, "w") as f:
         f.write("Total Clusters: {}\n".format(len(clusters)))
         for i in range(len(clusters)):
-            f.write("Cluster {}\n".format(i+1))
+            f.write("Cluster {}\n".format(i + 1))
             f.write("Number of Countries: {}\n".format(len(clusters[i])))
-            centroid_str = ' '.join(map(str, centroids[i]))
+            centroid_str = " ".join(map(str, centroids[i]))
             f.write("Centroid: {}\n".format(centroid_str))
 
             for j in range(len(names_clusters[i])):
                 f.write(names_clusters[i][j] + "\n")
-                cluster_str = ' '.join(map(str, clusters[i][j]))
-                cluster_str = "Attributes: "+cluster_str
+                cluster_str = " ".join(map(str, clusters[i][j]))
+                cluster_str = "Attributes: " + cluster_str
                 f.write(cluster_str + "\n")
             f.write("\n")
+
 
 def read_clusters_from_file(file_path):
     """
@@ -141,7 +152,7 @@ def read_clusters_from_file(file_path):
         num_clusters = int(lines[0].split(": ")[1])
         names_clusters = []
         clusters = []
-        for i in range(1, num_clusters+1):
+        for i in range(1, num_clusters + 1):
             names_clusters.append([])
             clusters.append([])
         cluster_index = 0
@@ -157,11 +168,12 @@ def read_clusters_from_file(file_path):
             elif lines[i].startswith("Attributes"):
                 cluster = lines[i].split(": ")[1].split()
                 cluster = [float(x) for x in cluster]
-                clusters[cluster_index-1].append(cluster)
+                clusters[cluster_index - 1].append(cluster)
             else:
                 name = lines[i].strip()
-                names_clusters[cluster_index-1].append(name)
+                names_clusters[cluster_index - 1].append(name)
     return names_clusters, clusters
+
 
 def calculate_Silhouette(clusters):
     """
@@ -178,13 +190,26 @@ def calculate_Silhouette(clusters):
     sample_size = sum([len(cluster) for cluster in clusters])
     for i, cluster in enumerate(clusters):
         for entry in cluster:
-            a = np.mean([1-cosine_similarity(entry, entry2)
-                         for entry2 in cluster if not np.array_equal(entry, entry2)])
-            b = min([np.mean([1-cosine_similarity(entry, entry2)
-                              for entry2 in clusters[j]]) for j in range(len(clusters)) if j != i])
-            silhouette += (b-a)/max(a, b)
+            a = np.mean(
+                [
+                    1 - cosine_similarity(entry, entry2)
+                    for entry2 in cluster
+                    if not np.array_equal(entry, entry2)
+                ]
+            )
+            b = min(
+                [
+                    np.mean(
+                        [1 - cosine_similarity(entry, entry2) for entry2 in clusters[j]]
+                    )
+                    for j in range(len(clusters))
+                    if j != i
+                ]
+            )
+            silhouette += (b - a) / max(a, b)
     silhouette /= sample_size
     return silhouette
+
 
 def find_best_k(entries):
     """
@@ -203,61 +228,108 @@ def find_best_k(entries):
         cur_time = time.time()
         print("=====================================")
         print("Clustering with K =", k)
-        names_clusters, clusters, centroids = K_Means_Clustering(
-            k, entries, itr=20)
+        names_clusters, clusters, centroids = K_Means_Clustering(k, entries, itr=20)
         write_clusters_to_file(
-            names_clusters, clusters, centroids, "../OUTPUT/cluster_output_{}.txt".format(k))
+            names_clusters,
+            clusters,
+            centroids,
+            "../OUTPUT/cluster_output_{}.txt".format(k),
+        )
         silhouette = calculate_Silhouette(clusters)
         print("=====================================")
         print("K:", k, "\nSilhouette:", silhouette)
         print(f"Cluster Output File: cluster_output_{k}.txt")
-        print("Time Taken:", time.time()-cur_time)
+        print("Time Taken:", time.time() - cur_time)
         print("=====================================")
         if silhouette > best_silhouette:
             best_silhouette = silhouette
             best_k = k
     return best_k
 
-def Hierarchical_Clustering(entries, k, linkage="complete"):
-    """
-    Perform hierarchical clustering on a given set of entries.
 
-    Parameters:
-    - entries (list): A list of entries, where each entry is a list of features.
-    - k (int): The desired number of clusters.
-    - linkage (str, optional): The type of linkage to use for clustering. Default is "complete".
+def Hierarchical_Divisve_Clustering(entries, number_of_clusters=6):
+    """
+    Perform Hierarchical Divisive Clustering on a given dataset.
+
+    Args:
+        entries (list): A list of entries, where each entry is a list of features.
+        number_of_clusters (int): The number of clusters to create. Default is 6.
 
     Returns:
-    - sorted_names_clusters (list): A list of lists, where each inner list contains the names of entries in a cluster.
-    - sorted_clusters (list): A list of lists, where each inner list contains the entries in a cluster.
-    - mean_clusters (list): A list of arrays, where each array contains the mean values of features in a cluster.
+        tuple: A tuple containing the following:
+            - names_clusters (list): A list of lists, where each inner list contains the names of entries in a cluster.
+            - value_clusters (list): A list of lists, where each inner list contains the attribute values of entries in a cluster.
+            - centroids (ndarray): An array of centroid vectors representing the final centroids of each cluster.
     """
-    entry_without_country = [entry[1:] for entry in entries]
-    names = [entry[0] for entry in entries]  # Extract country names
-    clusters = [[entry] for entry in entry_without_country]
-    names_clusters = [[name] for name in names]
-    while len(clusters) > k:
-        min_distance = float("inf")
+    clusters = []
+    clusters.append(entries)
+    while len(clusters) < number_of_clusters:
+        max_dissimilarity = -1
+        cluster_index_to_split = -1
         for i in range(len(clusters)):
-            for j in range(i+1, len(clusters)):
-                if linkage == "complete":
-                    distance=max([1-cosine_similarity(entry1, entry2) for entry1 in clusters[i] for entry2 in clusters[j]])
-                elif linkage == "single":
-                    distance=min([1-cosine_similarity(entry1, entry2) for entry1 in clusters[i] for entry2 in clusters[j]])
-                elif linkage == "average":
-                    distance=np.mean([1-cosine_similarity(entry1, entry2) for entry1 in clusters[i] for entry2 in clusters[j]])
-                if distance < min_distance:
-                    min_distance = distance
-                    merge_index = (i, j)
-        i, j = merge_index
-        clusters[i].extend(clusters[j])
-        names_clusters[i].extend(names_clusters[j])
-        clusters.pop(j)
-        names_clusters.pop(j)
-    sorted_names_clusters, sorted_clusters = sort_clusters(
-        names_clusters, clusters)
-    mean_clusters = [np.mean(cluster, axis=0) for cluster in sorted_clusters]
-    return sorted_names_clusters, sorted_clusters, mean_clusters
+            total_pair = 0
+            dissimilarity = 0
+            for j in range(len(clusters[i])):
+                for k in range(j + 1, len(clusters[i])):
+                    total_pair += 1
+                    dissimilarity += 1 - cosine_similarity(
+                        clusters[i][j][1:], clusters[i][k][1:]
+                    )
+            dissimilarity /= total_pair
+            if dissimilarity > max_dissimilarity:
+                max_dissimilarity = dissimilarity
+                cluster_index_to_split = i
+        cluster_to_split = clusters[cluster_index_to_split]
+        leader_index = 0
+        max_dissimilarity = -1
+        for i in range(len(cluster_to_split)):
+            dissimilarity = 0
+            for j in range(len(cluster_to_split)):
+                dissimilarity += 1 - cosine_similarity(
+                    cluster_to_split[i][1:], cluster_to_split[j][1:]
+                )
+            dissimilarity /= len(cluster_to_split)
+            if dissimilarity > max_dissimilarity:
+                max_dissimilarity = dissimilarity
+                leader_index = i
+        leader = cluster_to_split[leader_index]
+        new_cluster1 = []
+        new_cluster2 = []
+        for i in range(len(cluster_to_split)):
+            if i == leader_index:
+                new_cluster1.append(cluster_to_split[i])
+            else:
+                distance_from_leader1 = 1 - cosine_similarity(
+                    cluster_to_split[i][1:], leader[1:]
+                )
+                distance_from_cluster = 0
+                for j in range(len(cluster_to_split)):
+                    if j != leader_index:
+                        distance_from_cluster = max(
+                            distance_from_cluster,
+                            1
+                            - cosine_similarity(
+                                cluster_to_split[i][1:], cluster_to_split[j][1:]
+                            ),
+                        )
+                if distance_from_leader1 < distance_from_cluster:
+                    new_cluster1.append(cluster_to_split[i])
+                else:
+                    new_cluster2.append(cluster_to_split[i])
+        clusters.pop(cluster_index_to_split)
+        clusters.append(new_cluster1)
+        clusters.append(new_cluster2)
+    names_clusters = []
+    for cluster in clusters:
+        names_clusters.append([entry[0] for entry in cluster])
+    value_clusters = []
+    for cluster in clusters:
+        value_clusters.append([entry[1:] for entry in cluster])
+    centroids = []
+    for cluster in value_clusters:
+        centroids.append(np.mean(cluster, axis=0))
+    return names_clusters, value_clusters, centroids
+
 
 def generate_permutations(n):
     """
@@ -277,12 +349,13 @@ def generate_permutations(n):
         return [[0]]
     permutations = []
     for i in range(n):
-        sub_permutations = generate_permutations(n-1)
+        sub_permutations = generate_permutations(n - 1)
         for sub_permutation in sub_permutations:
             new_permutation = sub_permutation.copy()
-            new_permutation.insert(i, n-1)
+            new_permutation.insert(i, n - 1)
             permutations.append(new_permutation)
     return permutations
+
 
 def Jaccard_Similarity(list1, list2):
     """
@@ -311,6 +384,7 @@ def Jaccard_Similarity(list1, list2):
     else:
         return intersection_count / union_count
 
+
 def Try_All_Set_Map_Jaccard(cluster1, cluster2):
     """
     Calculates the Jaccard similarity between two clusters by trying all possible set mappings.
@@ -330,7 +404,9 @@ def Try_All_Set_Map_Jaccard(cluster1, cluster2):
 
     """
     if len(cluster1) != len(cluster2):
-        print(f"Clusters are not of same size\nCluster 1: {len(cluster1)}\nCluster 2: {len(cluster2)}") 
+        print(
+            f"Clusters are not of same size\nCluster 1: {len(cluster1)}\nCluster 2: {len(cluster2)}"
+        )
         raise ValueError("Clusters are not of same size")
 
     n = len(cluster1)
@@ -351,10 +427,13 @@ def Try_All_Set_Map_Jaccard(cluster1, cluster2):
             best_permutation = permutation
     jaccard_all = []
     for i in range(n):
-        jaccard_all.append(Jaccard_Similarity(cluster1[i], cluster2[best_permutation[i]]))
+        jaccard_all.append(
+            Jaccard_Similarity(cluster1[i], cluster2[best_permutation[i]])
+        )
     return best_avg_jaccard, jaccard_all, best_permutation
 
-def write_cluster_index_to_file(cluster,dataset,file_path):
+
+def write_cluster_index_to_file(cluster, dataset, file_path):
     """
     Write the cluster index to a file.
 
@@ -362,33 +441,34 @@ def write_cluster_index_to_file(cluster,dataset,file_path):
         cluster (list): A list of lists containing the names of countries in each cluster.
         dataset (list): A list of entries, where each entry is a list of features.
         file_path (str): The path to the file where the cluster index will be written.
-    
+
     Returns:
         None
     """
-
-    n=len(cluster)
-    name_map={}
-    i=0
+    n = len(cluster)
+    name_map = {}
+    i = 0
     for entry in dataset:
-        name_map[entry[0]]=i
-        i+=1
+        name_map[entry[0]] = i
+        i += 1
     with open(file_path, "w") as f:
         for j in range(n):
-            print_string=""
-            i=0
+            print_string = ""
+            i = 0
             for name in cluster[j]:
-                if(i!=0):
-                    print_string+=", "
-                print_string+=str(name_map[name])
-                i+=1
+                if i != 0:
+                    print_string += ", "
+                print_string += str(name_map[name])
+                i += 1
             f.write(f"{print_string}\n")
 
-        
+
 if __name__ == "__main__":
     cur_time = time.time()
     print("=====================================")
-    print("Country Grouping using Complete Linkage Divisive (Top-Down) Clustering Technique")
+    print(
+        "Country Grouping using Complete Linkage Divisive (Top-Down) Clustering Technique"
+    )
     print("Student Name: Bratin Mondal\nStudent ID: 21CS10016")
     print("=====================================")
     print("Loading Data...")
@@ -396,24 +476,28 @@ if __name__ == "__main__":
     attributes, entries = DataLoader()
     print("Data Loaded Successfully")
     print("=====================================")
-    print("Time Taken to Load Data: ", time.time()-cur_time)
+    print("Time Taken to Load Data: ", time.time() - cur_time)
     print("=====================================")
     print("Finding Best K using K-Means Clustering")
     cur_time = time.time()
     best_k = find_best_k(entries)
     print("=====================================")
     print("Best K: ", best_k)
-    print("Time Taken to Find Best K: ", time.time()-cur_time)
+    print("Time Taken to Find Best K: ", time.time() - cur_time)
     print("=====================================")
     print("Clustering with Hierarchical Clustering")
     print("=====================================")
     cur_time = time.time()
-    names_clusters, clusters, centroids = Hierarchical_Clustering(
-        entries, best_k, linkage="complete")
-    write_clusters_to_file(names_clusters, clusters, centroids,
-                           "../OUTPUT/cluster_output_hierarchical.txt")
+    names_clusters, clusters, centroids = Hierarchical_Divisve_Clustering(
+        entries, number_of_clusters=best_k
+    )
+    write_clusters_to_file(
+        names_clusters, clusters, centroids, "../OUTPUT/cluster_output_hierarchical.txt"
+    )
     silhouette = calculate_Silhouette(clusters)
-    print("Time Taken to Cluster using Hierarchical Clustering: ", time.time()-cur_time)
+    print(
+        "Time Taken to Cluster using Hierarchical Clustering: ", time.time() - cur_time
+    )
     print("=====================================")
     print("Silhouette: ", silhouette)
     print("Cluster Output File: cluster_output_hierarchical.txt")
@@ -422,22 +506,29 @@ if __name__ == "__main__":
     print("=====================================")
     print("Jaccard Similarity between K-Means and Hierarchical Clustering")
     names_clusters_kmeans, clusters_kmeans = read_clusters_from_file(
-        "../OUTPUT/cluster_output_{}.txt".format(best_k))
+        "../OUTPUT/cluster_output_{}.txt".format(best_k)
+    )
     names_clusters_hierarchical, clusters_hierarchical = read_clusters_from_file(
-        "../OUTPUT/cluster_output_hierarchical.txt")
+        "../OUTPUT/cluster_output_hierarchical.txt"
+    )
     cur_time = time.time()
     avg_jaccard, jaccard_all, best_permutation = Try_All_Set_Map_Jaccard(
-        names_clusters_kmeans, names_clusters_hierarchical)
+        names_clusters_kmeans, names_clusters_hierarchical
+    )
     print("=====================================")
-    print("Time Taken to Calculate Jaccard Similarity: ", time.time()-cur_time)
+    print("Time Taken to Calculate Jaccard Similarity: ", time.time() - cur_time)
     for i in range(best_k):
         print("=====================================")
-        print(f"Cluster {i+1} of K-Means is mapped to Cluster {best_permutation[i]+1} of Hierarchical Clustering")
+        print(
+            f"Cluster {i+1} of K-Means is mapped to Cluster {best_permutation[i]+1} of Hierarchical Clustering"
+        )
         print(f"Jaccard Similarity: {jaccard_all[i]}")
     print("=====================================")
     print("Writing Cluster Index to File")
-    write_cluster_index_to_file(names_clusters_kmeans,entries,"../OUTPUT/kmeans.txt")
-    write_cluster_index_to_file(names_clusters_hierarchical,entries,"../OUTPUT/divisive.txt")
+    write_cluster_index_to_file(names_clusters_kmeans, entries, "../OUTPUT/kmeans.txt")
+    write_cluster_index_to_file(
+        names_clusters_hierarchical, entries, "../OUTPUT/divisive.txt"
+    )
     print("=====================================")
     print("Cluster Index Written to File")
     print("=====================================")
