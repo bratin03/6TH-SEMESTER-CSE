@@ -62,6 +62,6 @@ A new directory named `OUTPUT` will be created in the main directory. The direct
 - `cluster_output_6.txt`: Contains the output of the clustering model with 6 clusters.
 - `cluster_output_hierarchical.txt`: Contains the output of the hierarchical clustering model.
 
-### The following files contain the cluster information for each of the clustering models as specified in the assignment:
+#### The following files contain the cluster information for each of the clustering models as specified in the assignment and is stored in `SUBMISSION` directory:
 - `divisive.txt`: Cluster information for divisive clustering.
 - `kmeans.txt`: Cluster information for kmeans clustering.

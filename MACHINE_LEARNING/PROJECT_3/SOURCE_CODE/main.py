@@ -465,6 +465,7 @@ def write_cluster_index_to_file(cluster, dataset, file_path):
 
 if __name__ == "__main__":
     cur_time = time.time()
+    start_time = time.time()
     print("=====================================")
     print(
         "Country Grouping using Complete Linkage Divisive (Top-Down) Clustering Technique"
@@ -525,10 +526,13 @@ if __name__ == "__main__":
         print(f"Jaccard Similarity: {jaccard_all[i]}")
     print("=====================================")
     print("Writing Cluster Index to File")
-    write_cluster_index_to_file(names_clusters_kmeans, entries, "../OUTPUT/kmeans.txt")
     write_cluster_index_to_file(
-        names_clusters_hierarchical, entries, "../OUTPUT/divisive.txt"
+        names_clusters_kmeans, entries, "../SUBMISSION/kmeans.txt"
+    )
+    write_cluster_index_to_file(
+        names_clusters_hierarchical, entries, "../SUBMISSION/divisive.txt"
     )
     print("=====================================")
     print("Cluster Index Written to File")
     print("=====================================")
+    print("Total Time Taken: ", time.time() - start_time)

@@ -1,0 +1,1068 @@
+Q: connectivity-check.ubuntu.com.
+A: 2620:2d:4000:1::23, 2001:67c:1562::24, 2001:67c:1562::23, 2620:2d:4000:1::22, 2620:2d:4000:1::2b, 2620:2d:4000:1::2a
+
+Q: 251.0.0.224.in-addr.arpa.
+A: 'mdns.mcast.net.'
+
+Q: detectportal.firefox.com.
+A: 'detectportal.prod.mozaws.net.'
+
+Q: detectportal.prod.mozaws.net.
+A: 'prod.detectportal.prod.cloudops.mozgcp.net.'
+
+Q: prod.detectportal.prod.cloudops.mozgcp.net.
+A: 2600:1901:0:38d7::
+
+Q: detectportal.firefox.com.
+A: 'detectportal.prod.mozaws.net.'
+
+Q: detectportal.prod.mozaws.net.
+A: 'prod.detectportal.prod.cloudops.mozgcp.net.'
+
+Q: prod.detectportal.prod.cloudops.mozgcp.net.
+A: 34.107.221.82
+
+Q: contile.services.mozilla.com.
+A: 34.117.237.239
+
+Q: spocs.getpocket.com.
+A: 'proxyserverecs-1736642167.us-east-1.elb.amazonaws.com.'
+
+Q: proxyserverecs-1736642167.us-east-1.elb.amazonaws.com.
+A: 54.81.18.32, 3.231.97.13, 44.215.47.169, 44.205.134.14
+
+Q: spocs.getpocket.com.
+A: 'proxyserverecs-1736642167.us-east-1.elb.amazonaws.com.'
+
+Q: example.org.
+A: 2606:2800:220:1:248:1893:25c8:1946
+
+Q: example.org.
+A: 93.184.216.34
+
+Q: ipv4only.arpa.
+A: 192.0.0.171, 192.0.0.170
+
+Q: content-signature-2.cdn.mozilla.net.
+A: 'content-signature-chains.prod.autograph.services.mozaws.net.'
+
+Q: content-signature-chains.prod.autograph.services.mozaws.net.
+A: 'prod.content-signature-chains.prod.webservices.mozgcp.net.'
+
+Q: prod.content-signature-chains.prod.webservices.mozgcp.net.
+A: 2600:1901:0:92a9::
+
+Q: content-signature-2.cdn.mozilla.net.
+A: 'content-signature-chains.prod.autograph.services.mozaws.net.'
+
+Q: content-signature-chains.prod.autograph.services.mozaws.net.
+A: 'prod.content-signature-chains.prod.webservices.mozgcp.net.'
+
+Q: prod.content-signature-chains.prod.webservices.mozgcp.net.
+A: 34.160.144.191
+
+Q: www.facebook.com.
+A: 'star-mini.c10r.facebook.com.'
+
+Q: star-mini.c10r.facebook.com.
+A: 163.70.143.35
+
+Q: www.wikipedia.org.
+A: 'dyna.wikimedia.org.'
+
+Q: dyna.wikimedia.org.
+A: 103.102.166.224
+
+Q: www.wikipedia.org.
+A: 'dyna.wikimedia.org.'
+
+Q: dyna.wikimedia.org.
+A: 2001:df2:e500:ed1a::1
+
+Q: www.youtube.com.
+A: 'youtube-ui.l.google.com.'
+
+Q: youtube-ui.l.google.com.
+A: 2404:6800:4002:817::200e, 2404:6800:4002:815::200e, 2404:6800:4002:814::200e, 2404:6800:4002:816::200e
+
+Q: www.facebook.com.
+A: 'star-mini.c10r.facebook.com.'
+
+Q: star-mini.c10r.facebook.com.
+A: 2a03:2880:f188:84:face:b00c:0:25de
+
+Q: www.youtube.com.
+A: 'youtube-ui.l.google.com.'
+
+Q: youtube-ui.l.google.com.
+A: 142.250.194.78, 142.250.192.206, 142.250.193.238, 142.250.192.238, 142.250.206.174, 142.250.194.110, 142.250.206.110, 142.250.193.14, 142.250.193.46, 142.250.194.14, 142.250.194.174, 142.250.193.206, 142.250.194.142, 142.250.206.142, 142.250.194.206, 142.250.194.46
+
+Q: getpocket.com.
+A: 108.159.61.6, 108.159.61.85, 108.159.61.102, 108.159.61.86
+
+Q: www.reddit.com.
+A: 'reddit.map.fastly.net.'
+
+Q: reddit.map.fastly.net.
+A: 199.232.101.140
+
+Q: www.reddit.com.
+A: 'reddit.map.fastly.net.'
+
+Q: twitter.com.
+A: 104.244.42.65, 104.244.42.129, 104.244.42.193, 104.244.42.1
+
+Q: r3.o.lencr.org.
+A: 'o.lencr.edgesuite.net.'
+
+Q: o.lencr.edgesuite.net.
+A: 'a1887.dscq.akamai.net.'
+
+Q: a1887.dscq.akamai.net.
+A: 'a1887.dscq.akamai.net.0.1.cn.akamaitech.net.'
+
+Q: a1887.dscq.akamai.net.0.1.cn.akamaitech.net.
+A: 2600:140f:3::170f:8a9f, 2600:140f:3::170f:8ad7
+
+Q: r3.o.lencr.org.
+A: 'o.lencr.edgesuite.net.'
+
+Q: o.lencr.edgesuite.net.
+A: 'a1887.dscq.akamai.net.'
+
+Q: a1887.dscq.akamai.net.
+A: 184.84.233.67, 184.84.233.97
+
+Q: img-getpocket.cdn.mozilla.net.
+A: 'img-getpocket-cdn.prod.mozaws.net.'
+
+Q: img-getpocket-cdn.prod.mozaws.net.
+A: 'img-prod.pocket.prod.cloudops.mozgcp.net.'
+
+Q: img-prod.pocket.prod.cloudops.mozgcp.net.
+A: 34.120.237.76
+
+Q: firefox.settings.services.mozilla.com.
+A: 'prod.remote-settings.prod.webservices.mozgcp.net.'
+
+Q: firefox.settings.services.mozilla.com.
+A: 'prod.remote-settings.prod.webservices.mozgcp.net.'
+
+Q: prod.remote-settings.prod.webservices.mozgcp.net.
+A: 34.149.100.209
+
+Q: scroll.in.
+A: 142.93.213.69
+
+Q: www.tastingtable.com.
+A: 18.66.78.24, 18.66.78.97, 18.66.78.3, 18.66.78.19
+
+Q: www.inverse.com.
+A: 54.182.0.6, 54.182.0.43, 54.182.0.40, 54.182.0.64
+
+Q: www.cnbc.com.
+A: 'www.cnbc.com.edgekey.net.'
+
+Q: www.cnbc.com.edgekey.net.
+A: 'e3365.e12.akamaiedge.net.'
+
+Q: img-getpocket.cdn.mozilla.net.
+A: 'img-getpocket-cdn.prod.mozaws.net.'
+
+Q: img-getpocket-cdn.prod.mozaws.net.
+A: 'img-prod.pocket.prod.cloudops.mozgcp.net.'
+
+Q: img-prod.pocket.prod.cloudops.mozgcp.net.
+A: 2600:1901:0:e988::
+
+Q: www.lonelyplanet.com.
+A: 13.35.191.51, 13.35.191.35, 13.35.191.57, 13.35.191.81
+
+Q: www.theguardian.com.
+A: 'dualstack.guardian.map.fastly.net.'
+
+Q: dualstack.guardian.map.fastly.net.
+A: 151.101.153.111
+
+Q: push.services.mozilla.com.
+A: 'autopush.prod.mozaws.net.'
+
+Q: autopush.prod.mozaws.net.
+A: 34.107.243.93
+
+Q: www.theguardian.com.
+A: 'dualstack.guardian.map.fastly.net.'
+
+Q: dualstack.guardian.map.fastly.net.
+A: 2a04:4e42:24::367
+
+Q: push.services.mozilla.com.
+A: 'autopush.prod.mozaws.net.'
+
+Q: safebrowsing.googleapis.com.
+A: 142.250.192.74
+
+Q: safebrowsing.googleapis.com.
+A: 2404:6800:4002:82b::200a
+
+Q: iitkgp.ac.in.
+A: 172.16.3.10
+
+Q: www.vox.com.
+A: 'vox-chorus.map.fastly.net.'
+
+Q: www.vox.com.
+A: 'vox-chorus.map.fastly.net.'
+
+Q: vox-chorus.map.fastly.net.
+A: 151.101.153.52
+
+Q: www.gq-magazine.co.uk.
+A: 'dualstack.cni-digital.map.fastly.net.'
+
+Q: dualstack.cni-digital.map.fastly.net.
+A: 199.232.22.133
+
+Q: www.cnbc.com.
+A: 'www.cnbc.com.edgekey.net.'
+
+Q: www.cnbc.com.edgekey.net.
+A: 'e3365.e12.akamaiedge.net.'
+
+Q: e3365.e12.akamaiedge.net.
+A: 104.123.210.231
+
+Q: www.gq-magazine.co.uk.
+A: 'dualstack.cni-digital.map.fastly.net.'
+
+Q: dualstack.cni-digital.map.fastly.net.
+A: 2a04:4e42:42::645
+
+Q: www.nytimes.com.
+A: 'www.prd.map.nytimes.com.'
+
+Q: www.prd.map.nytimes.com.
+A: 'www.prd.map.nytimes.xovr.nyt.net.'
+
+Q: www.prd.map.nytimes.xovr.nyt.net.
+A: 'nytimes.map.fastly.net.'
+
+Q: nytimes.map.fastly.net.
+A: 151.101.153.164
+
+Q: www.fastcompany.com.
+A: 'mansueto.map.fastly.net.'
+
+Q: www.fastcompany.com.
+A: 'mansueto.map.fastly.net.'
+
+Q: mansueto.map.fastly.net.
+A: 151.101.153.54
+
+Q: www.nytimes.com.
+A: 'www.prd.map.nytimes.com.'
+
+Q: www.prd.map.nytimes.com.
+A: 'www.prd.map.nytimes.xovr.nyt.net.'
+
+Q: www.prd.map.nytimes.xovr.nyt.net.
+A: 'nytimes.map.fastly.net.'
+
+Q: incoming.telemetry.mozilla.org.
+A: 'telemetry-incoming.r53-2.services.mozilla.com.'
+
+Q: ocsp.r2m02.amazontrust.com.
+A: 18.67.196.194
+
+Q: ocsp.pki.goog.
+A: 'pki-goog.l.google.com.'
+
+Q: pki-goog.l.google.com.
+A: 142.250.194.131
+
+Q: ocsp.pki.goog.
+A: 'pki-goog.l.google.com.'
+
+Q: pki-goog.l.google.com.
+A: 2404:6800:4002:81c::2003
+
+Q: daily.jstor.org.
+A: 23.185.0.2
+
+Q: thewire.in.
+A: 2606:4700:3031::ac43:b808, 2606:4700:3035::6815:5404
+
+Q: thewire.in.
+A: 172.67.184.8, 104.21.84.4
+
+Q: www.smithsonianmag.com.
+A: 'www.smithsonianmag.com.cdn.cloudflare.net.'
+
+Q: www.smithsonianmag.com.cdn.cloudflare.net.
+A: 172.67.5.56, 104.22.7.9, 104.22.6.9
+
+Q: www.outlooktraveller.com.
+A: 'outlooktraveller.publisher.quintype.io.'
+
+Q: outlooktraveller.publisher.quintype.io.
+A: 'cf.quintype.io.'
+
+Q: cf.quintype.io.
+A: 'cf.quintype.io.cdn.cloudflare.net.'
+
+Q: cf.quintype.io.cdn.cloudflare.net.
+A: 2606:4700::6812:5ac6, 2606:4700::6812:5bc6, 2606:4700::6812:5dc6, 2606:4700::6812:5cc6, 2606:4700::6812:5ec6
+
+Q: www.outlooktraveller.com.
+A: 'outlooktraveller.publisher.quintype.io.'
+
+Q: outlooktraveller.publisher.quintype.io.
+A: 'cf.quintype.io.'
+
+Q: cf.quintype.io.
+A: 'cf.quintype.io.cdn.cloudflare.net.'
+
+Q: cf.quintype.io.cdn.cloudflare.net.
+A: 104.18.92.198, 104.18.93.198, 104.18.91.198, 104.18.90.198, 104.18.94.198
+
+Q: bigthink.com.
+A: 172.67.14.204, 104.22.59.144, 104.22.58.144
+
+Q: contile-images.services.mozilla.com.
+A: 34.120.115.102
+
+Q: www.livestrong.com.
+A: 23.57.238.18
+
+Q: bigthink.com.
+A: 2606:4700:10::ac43:ecc, 2606:4700:10::6816:3a90, 2606:4700:10::6816:3b90
+
+Q: www.technologyreview.com.
+A: 192.0.66.184
+
+Q: www.telegraphindia.com.
+A: 'www.telegraphindia.com.edgekey.net.'
+
+Q: www.telegraphindia.com.edgekey.net.
+A: 'e1483.j.akamaiedge.net.'
+
+Q: tastecooking.com.
+A: 23.185.0.2
+
+Q: cdnjs.cloudflare.com.
+A: 2606:4700::6811:180e, 2606:4700::6811:190e
+
+Q: www.iitkgp.ac.in.
+A: 172.16.3.10
+
+Q: code.jquery.com.
+A: 151.101.130.137, 151.101.194.137, 151.101.66.137, 151.101.2.137
+
+Q: cdnjs.cloudflare.com.
+A: 104.17.24.14, 104.17.25.14
+
+Q: code.jquery.com.
+A: 2a04:4e42:600::649, 2a04:4e42:200::649, 2a04:4e42:400::649, 2a04:4e42::649
+
+Q: connect.facebook.net.
+A: 'scontent.xx.fbcdn.net.'
+
+Q: scontent.xx.fbcdn.net.
+A: 163.70.143.4
+
+Q: connect.facebook.net.
+A: 'scontent.xx.fbcdn.net.'
+
+Q: scontent.xx.fbcdn.net.
+A: 2a03:2880:f0a4:115:face:b00c:0:3
+
+Q: status.geotrust.com.
+A: 'ocsp.digicert.com.'
+
+Q: ocsp.digicert.com.
+A: 'ocsp.edge.digicert.com.'
+
+Q: ocsp.edge.digicert.com.
+A: 'fp2e7a.wpc.2be4.phicdn.net.'
+
+Q: fp2e7a.wpc.2be4.phicdn.net.
+A: 'fp2e7a.wpc.phicdn.net.'
+
+Q: status.geotrust.com.
+A: 'ocsp.digicert.com.'
+
+Q: ocsp.digicert.com.
+A: 'ocsp.edge.digicert.com.'
+
+Q: ocsp.edge.digicert.com.
+A: 'fp2e7a.wpc.2be4.phicdn.net.'
+
+Q: fp2e7a.wpc.2be4.phicdn.net.
+A: 'fp2e7a.wpc.phicdn.net.'
+
+Q: fp2e7a.wpc.phicdn.net.
+A: 152.195.38.76
+
+Q: cdn.jsdelivr.net.
+A: 'jsdelivr.map.fastly.net.'
+
+Q: jsdelivr.map.fastly.net.
+A: 199.232.21.229
+
+Q: cdn.jsdelivr.net.
+A: 'jsdelivr.map.fastly.net.'
+
+Q: jsdelivr.map.fastly.net.
+A: 2a04:4e42:42::485
+
+Q: firefox-api-proxy.cdn.mozilla.net.
+A: 'firefox-api-proxy-prod.pocket.prod.cloudops.mozgcp.net.'
+
+Q: firefox-api-proxy-prod.pocket.prod.cloudops.mozgcp.net.
+A: 34.149.97.1
+
+Q: firefox-api-proxy.cdn.mozilla.net.
+A: 'firefox-api-proxy-prod.pocket.prod.cloudops.mozgcp.net.'
+
+Q: firefox-api-proxy-prod.pocket.prod.cloudops.mozgcp.net.
+A: 2600:1901:0:74e4::
+
+Q: fonts.googleapis.com.
+A: 142.251.42.10
+
+Q: fonts.googleapis.com.
+A: 2404:6800:4002:820::200a
+
+Q: shavar.services.mozilla.com.
+A: 'shavar.prod.mozaws.net.'
+
+Q: shavar.services.mozilla.com.
+A: 'shavar.prod.mozaws.net.'
+
+Q: shavar.prod.mozaws.net.
+A: 34.213.155.5, 52.24.152.80, 44.239.151.67
+
+Q: code.jquery.com.
+A: 151.101.2.137, 151.101.194.137, 151.101.130.137, 151.101.66.137
+
+Q: www.smithsonianmag.com.cdn.cloudflare.net.
+A: 2606:4700:10::6816:709, 2606:4700:10::ac43:538, 2606:4700:10::6816:609
+
+Q: telemetry-incoming.r53-2.services.mozilla.com.
+A: 34.120.208.123
+
+Q: services.addons.mozilla.org.
+A: 3.160.188.15, 3.160.188.45, 3.160.188.61, 3.160.188.95
+
+Q: www.wired.com.
+A: 'h2.condenast.map.fastly.net.'
+
+Q: h2.condenast.map.fastly.net.
+A: 151.101.154.194
+
+Q: e1483.j.akamaiedge.net.
+A: 104.123.217.133
+
+Q: tastecooking.com.
+A: 2620:12a:8000::2, 2620:12a:8001::2
+
+Q: jnn-pa.googleapis.com.
+A: 142.250.194.10, 142.250.206.170, 142.250.182.170, 142.250.193.234, 142.250.77.234, 142.250.194.138, 142.250.194.42, 142.250.193.10, 142.250.194.106, 142.250.192.234, 142.250.193.74, 142.250.206.138, 142.250.193.42, 142.250.206.106, 142.250.194.74, 142.250.193.202
+
+Q: www.google.com.
+A: 2404:6800:4009:821::2004
+
+Q: i.ytimg.com.
+A: 172.217.167.246, 216.58.196.214, 172.217.27.182, 142.250.193.54, 142.250.192.182, 172.217.166.246, 142.250.77.246, 142.250.182.182, 142.250.193.22, 142.250.193.246, 142.250.193.214, 142.250.192.246, 142.250.77.214, 142.250.193.86, 172.217.167.214, 172.217.166.22
+
+Q: www.google.com.
+A: 142.250.183.36
+
+Q: i.ytimg.com.
+A: 2404:6800:4009:82b::2016, 2404:6800:4009:827::2016, 2404:6800:4009:823::2016, 2404:6800:4009:829::2016
+
+Q: www.mozilla.org.
+A: 'www.mozorg.moz.works.'
+
+Q: www.mozorg.moz.works.
+A: 18.164.190.188
+
+Q: www.mozilla.org.
+A: 'www.mozorg.moz.works.'
+
+Q: yt3.ggpht.com.
+A: 'photos-ugc.l.googleusercontent.com.'
+
+Q: photos-ugc.l.googleusercontent.com.
+A: 216.58.200.193
+
+Q: photos-ugc.l.googleusercontent.com.
+A: 2404:6800:4009:81e::2001
+
+Q: www.cornell.edu.
+A: 'cornell-edge-ekhkdhg5czdmb2bf.z01.azurefd.net.'
+
+Q: cornell-edge-ekhkdhg5czdmb2bf.z01.azurefd.net.
+A: 'star-azurefd-prod.trafficmanager.net.'
+
+Q: star-azurefd-prod.trafficmanager.net.
+A: 'shed.dual-low.part-0044.t-0009.t-msedge.net.'
+
+Q: shed.dual-low.part-0044.t-0009.t-msedge.net.
+A: 'part-0044.t-0009.t-msedge.net.'
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 13.107.246.72, 13.107.213.72
+
+Q: www.cornell.edu.
+A: 'cornell-edge-ekhkdhg5czdmb2bf.z01.azurefd.net.'
+
+Q: cornell-edge-ekhkdhg5czdmb2bf.z01.azurefd.net.
+A: 'star-azurefd-prod.trafficmanager.net.'
+
+Q: star-azurefd-prod.trafficmanager.net.
+A: 'shed.dual-low.part-0044.t-0009.t-msedge.net.'
+
+Q: shed.dual-low.part-0044.t-0009.t-msedge.net.
+A: 'part-0044.t-0009.t-msedge.net.'
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 2620:1ec:bdf::72, 2620:1ec:46::72
+
+Q: www.amazon.in.
+A: 'tp.c95e7e602-frontier.amazon.in.'
+
+Q: tp.c95e7e602-frontier.amazon.in.
+A: 'd1elgm1ww0d6wo.cloudfront.net.'
+
+Q: d1elgm1ww0d6wo.cloudfront.net.
+A: 18.164.192.103
+
+Q: www.amazon.in.
+A: 'tp.c95e7e602-frontier.amazon.in.'
+
+Q: tp.c95e7e602-frontier.amazon.in.
+A: 'www.amazon.in.edgekey.net.'
+
+Q: www.amazon.in.edgekey.net.
+A: 'e15322.dsca.akamaiedge.net.'
+
+Q: e15322.dsca.akamaiedge.net.
+A: 2405:8a00:1b:686::3bda, 2405:8a00:1b:688::3bda
+
+Q: s.click.aliexpress.com.
+A: 'global.aliexpress.com.'
+
+Q: global.aliexpress.com.
+A: 'global.aliexpress.com.gds.alibabadns.com.'
+
+Q: global.aliexpress.com.gds.alibabadns.com.
+A: 'sa1111.alicdn.com.edgekey.net.'
+
+Q: sa1111.alicdn.com.edgekey.net.
+A: 'e11957.x.akamaiedge.net.'
+
+Q: s.click.aliexpress.com.
+A: 'global.aliexpress.com.'
+
+Q: global.aliexpress.com.
+A: 'global.aliexpress.com.gds.alibabadns.com.'
+
+Q: global.aliexpress.com.gds.alibabadns.com.
+A: 'sa1111.alicdn.com.edgekey.net.'
+
+Q: sa1111.alicdn.com.edgekey.net.
+A: 'e11957.x.akamaiedge.net.'
+
+Q: e11957.x.akamaiedge.net.
+A: 23.57.234.242
+
+Q: code.jquery.com.
+A: 151.101.194.137, 151.101.2.137, 151.101.66.137, 151.101.130.137
+
+Q: fonts.gstatic.com.
+A: 2404:6800:4002:822::2003
+
+Q: incoming.telemetry.mozilla.org.
+A: 'telemetry-incoming.r53-2.services.mozilla.com.'
+
+Q: telemetry-incoming.r53-2.services.mozilla.com.
+A: 34.120.208.123
+
+Q: jnn-pa.googleapis.com.
+A: 2404:6800:4009:831::200a, 2404:6800:4009:82a::200a, 2404:6800:4009:828::200a, 2404:6800:4009:830::200a
+
+Q: scontent.xx.fbcdn.net.
+A: 2a03:2880:f0a4:115:face:b00c:0:3
+
+Q: fonts.gstatic.com.
+A: 216.58.196.195
+
+Q: googleads.g.doubleclick.net.
+A: 142.250.70.98
+
+Q: platform.twitter.com.
+A: 'cs472.wac.edgecastcdn.net.'
+
+Q: cs472.wac.edgecastcdn.net.
+A: 'cs1-apr-8315.wac.edgecastcdn.net.'
+
+Q: cs1-apr-8315.wac.edgecastcdn.net.
+A: 'wac.apr-8315.edgecastdns.net.'
+
+Q: wac.apr-8315.edgecastdns.net.
+A: 'cs1-lb-as.8315.ecdns.net.'
+
+Q: cs1-lb-as.8315.ecdns.net.
+A: 'cs491.wac.edgecastcdn.net.'
+
+Q: cs491.wac.edgecastcdn.net.
+A: 2606:2800:248:2f:1d8a:787:dc7:17df
+
+Q: platform.twitter.com.
+A: 'cs472.wac.edgecastcdn.net.'
+
+Q: cs472.wac.edgecastcdn.net.
+A: 'cs1-apr-8315.wac.edgecastcdn.net.'
+
+Q: cs1-apr-8315.wac.edgecastcdn.net.
+A: 'wac.apr-8315.edgecastdns.net.'
+
+Q: wac.apr-8315.edgecastdns.net.
+A: 'cs1-lb-as.8315.ecdns.net.'
+
+Q: cs1-lb-as.8315.ecdns.net.
+A: 'cs491.wac.edgecastcdn.net.'
+
+Q: cs491.wac.edgecastcdn.net.
+A: 192.229.237.25
+
+Q: static.doubleclick.net.
+A: 172.217.160.198
+
+Q: googleads.g.doubleclick.net.
+A: 2404:6800:4002:825::2002
+
+Q: static.doubleclick.net.
+A: 2404:6800:4002:817::2006
+
+Q: nytimes.map.fastly.net.
+A: 199.232.21.164
+
+Q: code.jquery.com.
+A: 2a04:4e42:600::649, 2a04:4e42:200::649, 2a04:4e42::649, 2a04:4e42:400::649
+
+Q: www.fastcompany.com.
+A: 'mansueto.map.fastly.net.'
+
+Q: mansueto.map.fastly.net.
+A: 151.101.153.54
+
+Q: syndication.twitter.com.
+A: 104.244.42.8
+
+Q: www.linkedin.com.
+A: 'www-linkedin-com.l-0005.l-msedge.net.'
+
+Q: www-linkedin-com.l-0005.l-msedge.net.
+A: 'l-0005.l-msedge.net.'
+
+Q: l-0005.l-msedge.net.
+A: 2620:1ec:21::14
+
+Q: www.linkedin.com.
+A: 'www-linkedin-com.l-0005.l-msedge.net.'
+
+Q: www-linkedin-com.l-0005.l-msedge.net.
+A: 'l-0005.l-msedge.net.'
+
+Q: l-0005.l-msedge.net.
+A: 13.107.42.14
+
+Q: www.instagram.com.
+A: 'geo-p42.instagram.com.'
+
+Q: geo-p42.instagram.com.
+A: 'z-p42-instagram.c10r.instagram.com.'
+
+Q: z-p42-instagram.c10r.instagram.com.
+A: 163.70.143.174
+
+Q: www.instagram.com.
+A: 'geo-p42.instagram.com.'
+
+Q: geo-p42.instagram.com.
+A: 'z-p42-instagram.c10r.instagram.com.'
+
+Q: z-p42-instagram.c10r.instagram.com.
+A: 2a03:2880:f288:e4:face:b00c:0:4420
+
+Q: gateoffice.iitkgp.ac.in.
+A: 203.110.245.11
+
+Q: som.iitkgp.ac.in.
+A: 10.43.1.6
+
+Q: pbs.twimg.com.
+A: 'dualstack.twimg.twitter.map.fastly.net.'
+
+Q: dualstack.twimg.twitter.map.fastly.net.
+A: 199.232.20.159
+
+Q: dualstack.twimg.twitter.map.fastly.net.
+A: 2a04:4e42:42::159
+
+Q: play.google.com.
+A: 142.250.193.78
+
+Q: play.google.com.
+A: 2404:6800:4002:81b::200e
+
+Q: abs-0.twimg.com.
+A: 'abs-zero.twimg.com.'
+
+Q: abs-zero.twimg.com.
+A: 104.244.43.131
+
+Q: apna.iitkgp.ac.in.
+A: 10.3.100.171
+
+Q: www.smithsonianmag.com.cdn.cloudflare.net.
+A: 2606:4700:10::6816:709, 2606:4700:10::ac43:538, 2606:4700:10::6816:609
+
+Q: library.iitkgp.ac.in.
+A: 10.18.24.7
+
+Q: www.counsellingcentre.iitkgp.ac.in.
+A: 203.110.245.243
+
+Q: oldish.iitkgp.ac.in.
+A: 'beta.iitkgp.ac.in.'
+
+Q: beta.iitkgp.ac.in.
+A: 10.3.100.102
+
+Q: www.tgh.iitkgp.ac.in.
+A: 203.110.245.243
+
+Q: mail.google.com.
+A: 142.250.193.37
+
+Q: mail.google.com.
+A: 2404:6800:4002:815::2005
+
+Q: iitkgpmail.iitkgp.ac.in.
+A: 'proxy1.iitkgp.ac.in.'
+
+Q: proxy1.iitkgp.ac.in.
+A: 10.3.100.244
+
+Q: www.nvsp.in.
+A: 'nvsp.in.'
+
+Q: nvsp.in.
+A: 61.0.172.246
+
+Q: www.vidyalakshmi.co.in.
+A: 121.240.246.10
+
+Q: www.pmrf.in.
+A: 'proxy-ssl.webflow.com.'
+
+Q: proxy-ssl.webflow.com.
+A: 'proxy-ssl-geo.webflow.com.'
+
+Q: proxy-ssl-geo.webflow.com.
+A: 13.234.100.116, 13.200.123.229, 65.0.79.182
+
+Q: abs.twimg.com.
+A: 'cs510.wpc.edgecastcdn.net.'
+
+Q: cs510.wpc.edgecastcdn.net.
+A: 152.199.43.83
+
+Q: cs510.wpc.edgecastcdn.net.
+A: 2606:2800:247:9376:8aa7:779e:f6d9:de02
+
+Q: www.ncwwomenhelpline.in.
+A: 'ncwwomenhelpline.in.'
+
+Q: ncwwomenhelpline.in.
+A: 18.164.202.59, 18.164.202.99, 18.164.202.108, 18.164.202.24
+
+Q: www.g20.org.
+A: 189.9.176.149
+
+Q: erp.iitkgp.ac.in.
+A: 10.57.7.12, 10.57.7.11
+
+Q: dualstack.guardian.map.fastly.net.
+A: 2a04:4e42:42::367
+
+Q: scontent-bom2-1.xx.fbcdn.net.
+A: 163.70.143.4
+
+Q: star-mini.c10r.facebook.com.
+A: 163.70.143.35
+
+Q: static.xx.fbcdn.net.
+A: 'scontent.xx.fbcdn.net.'
+
+Q: scontent.xx.fbcdn.net.
+A: 163.70.143.4
+
+Q: star-mini.c10r.facebook.com.
+A: 2a03:2880:f188:84:face:b00c:0:25de
+
+Q: scontent-bom2-1.xx.fbcdn.net.
+A: 2a03:2880:f0a4:3:face:b00c:0:3
+
+Q: scontent-bom1-1.xx.fbcdn.net.
+A: 157.240.16.20
+
+Q: scontent-bom1-1.xx.fbcdn.net.
+A: 2a03:2880:f02f:13:face:b00c:0:3
+
+Q: h2.condenast.map.fastly.net.
+A: 151.101.154.194
+
+Q: e1483.j.akamaiedge.net.
+A: 104.85.119.162
+
+Q: external-bom1-1.xx.fbcdn.net.
+A: 'scontent-bom1-1.xx.fbcdn.net.'
+
+Q: scontent-bom1-1.xx.fbcdn.net.
+A: 157.240.16.20
+
+Q: scontent-bom1-2.xx.fbcdn.net.
+A: 31.13.79.26
+
+Q: scontent-bom1-2.xx.fbcdn.net.
+A: 2a03:2880:f02f:11b:face:b00c:0:3
+
+Q: video-bom2-1.xx.fbcdn.net.
+A: 163.70.143.22
+
+Q: video-bom1-2.xx.fbcdn.net.
+A: 2a03:2880:f02f:114:face:b00c:0:1823
+
+Q: video-bom1-2.xx.fbcdn.net.
+A: 31.13.79.20
+
+Q: video-bom2-1.xx.fbcdn.net.
+A: 2a03:2880:f0a4:17:face:b00c:0:1823
+
+Q: aus5.mozilla.org.
+A: 'balrog-aus5.r53-2.services.mozilla.com.'
+
+Q: balrog-aus5.r53-2.services.mozilla.com.
+A: 'prod.balrog.prod.cloudops.mozgcp.net.'
+
+Q: prod.balrog.prod.cloudops.mozgcp.net.
+A: 35.244.181.201
+
+Q: versioncheck-bg.addons.mozilla.org.
+A: 34.160.90.233
+
+Q: normandy.cdn.mozilla.net.
+A: 'normandy-cdn.services.mozilla.com.'
+
+Q: normandy-cdn.services.mozilla.com.
+A: 35.201.103.21
+
+Q: a1887.dscq.akamai.net.
+A: 180.149.59.136, 180.149.59.144
+
+Q: a1887.dscq.akamai.net.
+A: 2405:8a00:14:1::b495:3b90, 2405:8a00:14:1::b495:3b88
+
+Q: classify-client.services.mozilla.com.
+A: 'prod-classifyclient.normandy.prod.cloudops.mozgcp.net.'
+
+Q: prod-classifyclient.normandy.prod.cloudops.mozgcp.net.
+A: 34.98.75.36
+
+Q: play.google.com.
+A: 172.217.167.14
+
+Q: aus5.mozilla.org.
+A: 'balrog-aus5.r53-2.services.mozilla.com.'
+
+Q: balrog-aus5.r53-2.services.mozilla.com.
+A: 'prod.balrog.prod.cloudops.mozgcp.net.'
+
+Q: prod.balrog.prod.cloudops.mozgcp.net.
+A: 35.244.181.201
+
+Q: detectportal.firefox.com.
+A: 'detectportal.prod.mozaws.net.'
+
+Q: detectportal.prod.mozaws.net.
+A: 'prod.detectportal.prod.cloudops.mozgcp.net.'
+
+Q: prod.detectportal.prod.cloudops.mozgcp.net.
+A: 34.107.221.82
+
+Q: z-p42-instagram.c10r.instagram.com.
+A: 163.70.143.174
+
+Q: star-mini.c10r.facebook.com.
+A: 163.70.144.35
+
+Q: star-mini.c10r.facebook.com.
+A: 2a03:2880:f188:84:face:b00c:0:25de
+
+Q: z-p42-instagram.c10r.instagram.com.
+A: 2a03:2880:f288:e4:face:b00c:0:4420
+
+Q: cornell-edge-ekhkdhg5czdmb2bf.z01.azurefd.net.
+A: 'star-azurefd-prod.trafficmanager.net.'
+
+Q: star-azurefd-prod.trafficmanager.net.
+A: 'shed.dual-low.part-0044.t-0009.t-msedge.net.'
+
+Q: shed.dual-low.part-0044.t-0009.t-msedge.net.
+A: 'part-0044.t-0009.t-msedge.net.'
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 13.107.213.72, 13.107.246.72
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 2620:1ec:46::72, 2620:1ec:bdf::72
+
+Q: use.typekit.net.
+A: 'use-stls.adobe.com.edgesuite.net.'
+
+Q: use-stls.adobe.com.edgesuite.net.
+A: 'a1988.dscg1.akamai.net.'
+
+Q: a1988.dscg1.akamai.net.
+A: 180.149.59.145, 180.149.59.147
+
+Q: www.googletagmanager.com.
+A: 172.217.161.8
+
+Q: ajax.googleapis.com.
+A: 142.250.207.202
+
+Q: www.googletagmanager.com.
+A: 2404:6800:4009:802::2008
+
+Q: ajax.googleapis.com.
+A: 2404:6800:4002:81e::200a
+
+Q: media.univcomm.cornell.edu.
+A: 'cu-edge-epahbkgrahf2amb0.z01.azurefd.net.'
+
+Q: cu-edge-epahbkgrahf2amb0.z01.azurefd.net.
+A: 'star-azurefd-prod.trafficmanager.net.'
+
+Q: star-azurefd-prod.trafficmanager.net.
+A: 'shed.dual-low.part-0044.t-0009.t-msedge.net.'
+
+Q: shed.dual-low.part-0044.t-0009.t-msedge.net.
+A: 'part-0044.t-0009.t-msedge.net.'
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 13.107.246.72, 13.107.213.72
+
+Q: media.univcomm.cornell.edu.
+A: 'cu-edge-epahbkgrahf2amb0.z01.azurefd.net.'
+
+Q: cu-edge-epahbkgrahf2amb0.z01.azurefd.net.
+A: 'star-azurefd-prod.trafficmanager.net.'
+
+Q: star-azurefd-prod.trafficmanager.net.
+A: 'shed.dual-low.part-0044.t-0009.t-msedge.net.'
+
+Q: shed.dual-low.part-0044.t-0009.t-msedge.net.
+A: 'part-0044.t-0009.t-msedge.net.'
+
+Q: part-0044.t-0009.t-msedge.net.
+A: 2620:1ec:bdf::72, 2620:1ec:46::72
+
+Q: a1988.dscg1.akamai.net.
+A: 2600:140f:6::1739:4bd0, 2600:140f:6::1739:4bc2
+
+Q: ssl.google-analytics.com.
+A: 142.250.76.168
+
+Q: siteimproveanalytics.com.
+A: 104.21.50.150, 172.67.163.237
+
+Q: ssl.google-analytics.com.
+A: 2404:6800:4009:806::2008
+
+Q: siteimproveanalytics.com.
+A: 2606:4700:3030::ac43:a3ed, 2606:4700:3035::6815:3296
+
+Q: www.google-analytics.com.
+A: 142.250.206.142
+
+Q: www.google-analytics.com.
+A: 'www-alv.google-analytics.com.'
+
+Q: www-alv.google-analytics.com.
+A: 2001:4860:4802:34::178, 2001:4860:4802:38::178, 2001:4860:4802:36::178, 2001:4860:4802:32::178
+
+Q: p.typekit.net.
+A: 'p.typekit.net-stls-v3.edgesuite.net.'
+
+Q: p.typekit.net-stls-v3.edgesuite.net.
+A: 'a1874.dscg1.akamai.net.'
+
+Q: a1874.dscg1.akamai.net.
+A: 49.44.116.86, 49.44.116.78
+
+Q: a1874.dscg1.akamai.net.
+A: 2600:140f:6::172c:b12, 2600:140f:6::172c:b1a
+
+Q: cdnsecakmi.kaltura.com.
+A: 'cdnsecakmi-kaltura.edgekey.net.'
+
+Q: cdnsecakmi-kaltura.edgekey.net.
+A: 'e4350.g.akamaiedge.net.'
+
+Q: cdnsecakmi.kaltura.com.
+A: 'cdnsecakmi-kaltura.edgekey.net.'
+
+Q: cdnsecakmi-kaltura.edgekey.net.
+A: 'e4350.g.akamaiedge.net.'
+
+Q: e4350.g.akamaiedge.net.
+A: 23.35.94.115
+
+Q: 6120104.global.siteimproveanalytics.io.
+A: 'eu-north-1.global.siteimproveanalytics.io.'
+
+Q: eu-north-1.global.siteimproveanalytics.io.
+A: 'ana-collector-alb-eu-iron-829160369.eu-north-1.elb.amazonaws.com.'
+
+Q: 6120104.global.siteimproveanalytics.io.
+A: 'eu-north-1.global.siteimproveanalytics.io.'
+
+Q: eu-north-1.global.siteimproveanalytics.io.
+A: 'ana-collector-alb-eu-iron-829160369.eu-north-1.elb.amazonaws.com.'
+
+Q: ana-collector-alb-eu-iron-829160369.eu-north-1.elb.amazonaws.com.
+A: 13.49.88.20, 51.20.213.244
+
+Q: ocsp.r2m03.amazontrust.com.
+A: 13.35.189.111
+
+Q: stats.g.doubleclick.net.
+A: 172.217.194.157, 172.217.194.156, 172.217.194.154, 172.217.194.155
+
+Q: stats.g.doubleclick.net.
+A: 2404:6800:4003:c02::9c, 2404:6800:4003:c02::9b, 2404:6800:4003:c02::9a, 2404:6800:4003:c02::9d
+
+Q: incoming.telemetry.mozilla.org.
+A: 'telemetry-incoming.r53-2.services.mozilla.com.'
+
+Q: telemetry-incoming.r53-2.services.mozilla.com.
+A: 34.120.208.123
+
+Q: connectivity-check.ubuntu.com.
+A: 185.125.190.49, 185.125.190.48, 35.232.111.17, 185.125.190.17, 34.122.121.32, 35.224.170.84, 91.189.91.49, 91.189.91.48, 185.125.190.18
+

@@ -73,3 +73,7 @@ a.out
 *.jar
 
 */script_copy.sh
+
+*.log
+*.aux
+*.gz

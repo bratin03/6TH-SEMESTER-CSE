@@ -6,6 +6,7 @@
 model: main.py requirements.txt
 	@echo "Running the model..."
 	@mkdir -p ../OUTPUT
+	@mkdir -p ../SUBMISSION
 	@python3 main.py
 
 
