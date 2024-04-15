@@ -7,6 +7,8 @@ Project Title: Country Grouping using Complete Linkage Divisive (Top-Down) Clust
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 import time
 
 
@@ -383,7 +385,31 @@ def Jaccard_Similarity(list1, list2):
         return 0.0
     else:
         return intersection_count / union_count
-
+    
+def Jaccard_Similarity_Visualization(names_clusters_kmeans, names_clusters_hierarchical):
+    """
+    Displays a heatmap of the Jaccard similarity between two sets of clusters.
+    
+    Args:
+        names_clusters_kmeans (list): A list of lists containing the names of countries in each cluster for K-Means clustering.
+        names_clusters_hierarchical (list): A list of lists containing the names of countries in each cluster for Hierarchical clustering.
+    
+    Returns:
+        ndarray: A 2D numpy array containing the Jaccard similarity scores between the two sets of clusters.
+    """
+    n = len(names_clusters_kmeans)
+    m = len(names_clusters_hierarchical)
+    jaccard_matrix = np.zeros((n, m))
+    for i in range(n):
+        for j in range(m):
+            jaccard_matrix[i][j] = Jaccard_Similarity(names_clusters_kmeans[i], names_clusters_hierarchical[j])
+    plt.figure(figsize=(10, 10))
+    sns.heatmap(jaccard_matrix, annot=True, xticklabels=[f"Cluster {i+1}" for i in range(m)], yticklabels=[f"Cluster {i+1}" for i in range(n)], cmap="YlGnBu")
+    plt.xlabel("Hierarchical Clustering")
+    plt.ylabel("K-Means Clustering")
+    plt.title("Jaccard Similarity between K-Means and Hierarchical Clustering")
+    plt.savefig("../OUTPUT/jaccard_similarity.png")
+    return jaccard_matrix
 
 def Try_All_Set_Map_Jaccard(cluster1, cluster2):
     """
@@ -518,6 +544,7 @@ if __name__ == "__main__":
     )
     print("=====================================")
     print("Time Taken to Calculate Jaccard Similarity: ", time.time() - cur_time)
+    Jaccard_Similarity_Visualization(names_clusters_kmeans, names_clusters_hierarchical)
     for i in range(best_k):
         print("=====================================")
         print(

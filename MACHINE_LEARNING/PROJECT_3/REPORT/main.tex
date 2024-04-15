@@ -11,6 +11,11 @@
 \usepackage{graphicx}
 \usepackage{comment}
 \usepackage{booktabs}
+\usepackage{amsmath} % For mathematical formulas
+\usepackage{algorithm} % For pseudocode
+\usepackage{algpseudocode} % For pseudocode
+\usepackage{lipsum} % For dummy text
+
 \usepackage{geometry}
 \usepackage{hyperref}
 \usepackage{pgfplots}
@@ -79,13 +84,66 @@
 		\item Implement Complete Linkage Divisive (Top-Down) Clustering Technique from scratch for the optimal value of $k$ found in previous step.
 		\item Establish a one-to-one correspondence between the clusters obtained from K-means and Complete Linkage Divisive (Top-Down) Clustering Technique and calculate the Jaccard Similarity.
 	\end{itemize}
+
 	\section{Model Description}
+
+	\subsection{K-means Clustering Algorithm:}
+	\textbf{Algorithm:} \\
+	\begin{algorithmic}
+	\State Initialize $K$ cluster centroids randomly
+	\Repeat
+		\State Assign each data point to the nearest centroid
+		\State Update each centroid as the mean of the data points assigned to it
+	\Until{Convergence}
+	\end{algorithmic}
+	
+	\subsection{Silhouette Coefficient:}
+	\textbf{Formula:}
+	\[
+	s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}}
+	\]
+	where,
 	\begin{itemize}
-		\item \textbf{K-means Clustering Algorithm:} K-means clustering is a type of unsupervised learning, which is used when you have unlabeled data (i.e., data without defined categories or groups). The goal of this algorithm is to find groups in the data, with the number of groups represented by the variable K. The algorithm works iteratively to assign each data point to one of K groups based on the features that are provided. Data points are clustered based on feature similarity.
-		\item \textbf{Silhouette Coefficient:} The silhouette value is a measure of how similar an object is to its own cluster (cohesion) compared to other clusters (separation). The silhouette ranges from -1 to 1, where a high value indicates that the object is well matched to its own cluster and poorly matched to neighboring clusters. If most objects have a high value, then the clustering configuration is appropriate. If many points have a low or negative value, then the clustering configuration may have too many or too few clusters.
-		\item \textbf{Complete Linkage Divisive (Top-Down) Clustering Technique:} The complete linkage method is a hierarchical clustering method that uses the maximum distance between clusters to determine the distance between clusters. In this method, the distance between two clusters is the maximum distance between their individual components. The divisive clustering technique is a top-down approach where all the data points are considered as a single cluster and then the cluster is divided into smaller clusters until each data point is a separate cluster.
-		\item \textbf{Jaccard Similarity:} The Jaccard similarity coefficient of two sets is defined as the size of the intersection divided by the size of the union of the two sets. It is a measure of the similarity between two sets.
+		\item $s(i)$ is the silhouette coefficient of object $i$
+		\item $a(i)$ is the average distance from $i$ to other objects in the same cluster
+		\item $b(i)$ is the average distance from $i$ to objects in the nearest cluster that $i$ is not a part of
 	\end{itemize}
+	
+	\subsection{Complete Linkage Divisive (Top-Down) Clustering Technique:}
+	\textbf{Pseudocode:} \\
+	\begin{algorithmic}
+	\State Start with all data points in one cluster
+	\State Until the desired number of clusters is reached:
+	\State \quad Find the cluster with the maximum diameter to split
+	\State \quad Split the cluster into two based on the farthest points
+	\State \quad Update the cluster assignments
+	\end{algorithmic}
+	
+	\subsection{Jaccard Similarity:}
+	\textbf{Formula:}
+	\[
+	J(A, B) = \frac{|A \cap B|}{|A \cup B|}
+	\]
+	where,
+	\begin{itemize}
+		\item $J(A, B)$ is the Jaccard similarity coefficient between sets $A$ and $B$
+		\item $|A \cap B|$ is the size of the intersection of sets $A$ and $B$
+		\item $|A \cup B|$ is the size of the union of sets $A$ and $B$
+	\end{itemize}
+
+	\subsection{Cosine Similarity:}
+	\textbf{Formula:}
+	\[
+	\text{cosine\_similarity}(A, B) = \frac{A \cdot B}{\|A\| \|B\|}
+	\]
+	where,
+	\begin{itemize}
+		\item $\text{cosine\_similarity}(A, B)$ is the cosine similarity between vectors $A$ and $B$
+		\item $A \cdot B$ is the dot product of vectors $A$ and $B$
+		\item $\|A\|$ and $\|B\|$ are the Euclidean norms of vectors $A$ and $B$ respectively
+	\end{itemize}
+	
+	
 	\section{Results}
 	\subsection{K-means Clustering}
 	The optimal value of $k$ was found to be 3 using the silhouette coefficient metric. 
@@ -145,6 +203,13 @@
 	\subsection{Jaccard Similarity}
 	The Jaccard Similarity between the clusters obtained from K-means and Complete Linkage Divisive (Top-Down) Clustering Technique is shown in the Table below.
 	
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.8\textwidth]{jaccard_similarity.png} % Provide the file name or path to the image
+		\caption{Jaccard Similarity}
+		\label{fig:example}
+		\end{figure}
+
 	\begin{table}[htbp]
 		\centering
 		\begin{tabular}{ccc}
