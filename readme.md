@@ -20,7 +20,4 @@
 
 [OPERATING SYSTEMS LABORATORY](https://www.youtube.com/playlist?list=PLUfABYNel-fiBufnqvcTo6OxPoAaDC9v7)
 
-## Notes
-
-[Running Notes](https://iitkgpacin-my.sharepoint.com/personal/mondalbratin2003_kgpian_iitkgp_ac_in/_layouts/15/onedrive.aspx?login_hint=mondalbratin2003%40kgpian%2Eiitkgp%2Eac%2Ein&id=%2Fpersonal%2Fmondalbratin2003%5Fkgpian%5Fiitkgp%5Fac%5Fin%2FDocuments%2FSTUDY%20NOTES%2FSEMESTER%2FLECTURE%20NOTES&view=0)
 
