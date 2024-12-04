@@ -56,7 +56,7 @@ bin.s
 bin.cpp
 .vscode
 bin.*
-bin*.c
+bin.c
 
 # Ignore compiled files
 *.o
@@ -71,3 +71,9 @@ a.out
 *.a
 
 *.jar
+
+*/script_copy.sh
+
+*.log
+*.aux
+*.gz
