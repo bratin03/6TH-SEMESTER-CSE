@@ -245,3 +245,48 @@ COLOPHON
 
 Linux                                 2017-09-15                               SEND(2)
 ```
+
+### Summary
+The system calls send(), sendto(), and sendmsg() are used to transmit a message to another socket.
+1. Prototypes
+```c
+ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags);
+``` 
+2. The send call can only be used when the socket is in a connected state.
+3. `send()` is equivalent to `write()` with a zero flags argument and `send(sockfd, buf, len, flags);` is equivalent to `sendto(sockfd, buf, len, flags, NULL, 0);`
+4. The argument sockfd is the file descriptor of the sending socket.
+5. <font color="red">If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET) socket, the arguments dest_addr and addrlen are ignored (and the error EISCONN may be returned when they are not NULL and 0), and the error ENOTCONN is returned when the socket was not actually connected.</font> Otherwise, the address of the target is given by dest_addr with addrlen specifying its size.
+6. For send() and sendto(), the message is found in buf and has length len.
+7. If the message is too long to pass atomically through the underlying protocol, the error `EMSGSIZE` is returned, and the message is not transmitted.
+8. No indication of failure to deliver is implicit in a send(). Locally detected errors are indicated by a return value of -1.
+9. When the message does not fit into the send buffer of the socket, send() normally blocks, unless the socket has been placed in nonblocking I/O mode. In nonblocking mode it would fail with the error EAGAIN or EWOULDBLOCK in this case. The select(2) call may be used to determine when it is possible to send more data.
+
+### Flags
+1. `MSG_CONFIRM` (since Linux 2.3.15): Tell the link layer that forward progress happened: you got a successful reply from the other side. If the link layer doesn't get this it will regularly reprobe the neighbor (e.g., via a unicast ARP). Valid only on SOCK_DGRAM and SOCK_RAW sockets and currently implemented only for IPv4 and IPv6. See arp(7) for details.
+2. `MSG_DONTROUTE`: Don't use a gateway to send out the packet, send to hosts only on directly connected networks. This is usually used only by diagnostic or routing programs. This is defined only for protocol families that route; packet sockets don't.
+3. `MSG_DONTWAIT` (since Linux 2.2): <font color="red">Enables nonblocking operation; if the operation would block, EAGAIN or EWOULDBLOCK is returned.</font>
+4. `MSG_MORE` (since Linux 2.4.4): The caller has more data to send. This flag is used with TCP sockets to obtain the same effect as the TCP_CORK socket option (see tcp(7)), with the difference that this flag can be set on a per-call basis.
+5. `MSG_NOSIGNAL` (since Linux 2.2): Don't generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection. The EPIPE error is still returned. This provides similar behavior to using sigaction(2) to ignore SIGPIPE, but, whereas MSG_NOSIGNAL is a per-call feature, ignoring SIGPIPE sets a process attribute that affects all threads in the process.
+6. `MSG_OOB`: Sends out-of-band data on sockets that support this notion (e.g., of type SOCK_STREAM); the underlying protocol must also support out-of-band data.
+
+### Errors
+1. `EACCES` (For UNIX domain sockets, which are identified by pathname) Write permission is denied on the destination socket file, or search permission is denied for one of the directories the path prefix. (See path_resolution(7).)
+2. `EAGAIN` or `EWOULDBLOCK`: <font color="red">The socket is marked nonblocking and the requested operation would block.</font>
+3. `EBADF`: sockfd is not a valid open file descriptor.
+4. `ECONNRESET`: Connection reset by peer.
+5. `EDESTADDRREQ`: The socket is not connection-mode, and no peer address is set.
+6. `EFAULT`: An invalid user space address was specified for an argument.
+7. `EINTR`: A signal occurred before any data was transmitted; see signal(7).
+8. `EINVAL`: Invalid argument passed.
+9. `EISCONN`: The connection-mode socket was connected already but a recipient was specified. (Now either this error is returned, or the recipient specification is ignored.)
+10. `EMSGSIZE`: The socket type requires that message be sent atomically, and the size of the message to be sent made this impossible.
+11. `ENOBUFS`: The output queue for a network interface was full. This generally indicates that the interface has stopped sending, but may be caused by transient congestion. (Normally, this does not occur in Linux. Packets are just silently dropped when a device queue overflows.)
+12. `ENOMEM`: No memory available.
+13. `ENOTCONN`: The socket is not connected, and no target has been given.
+14. `ENOTSOCK`: The file descriptor sockfd does not refer to a socket.
+15. `EOPNOTSUPP`: Some bit in the flags argument is inappropriate for the socket type.
+16. `EPIPE`: The local end has been shut down on a connection oriented socket. In this case, the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
+
+a. Cannot send data over a non-connected socket with `send()` without specifying the destination address.

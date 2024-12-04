@@ -214,3 +214,47 @@ COLOPHON
 
 Linux                                  2019-03-06                              SOCKET(2)
 ```
+
+## Summary
+
+1. Creates an endpoint for communication and returns a file descriptor that refers to that endpoint.
+2. Prototype: `int socket(int domain, int type, int protocol);`
+3. **Domain**: Specifies a communication domain; this selects the protocol family which will be used for communication. We use only `AF_INET` for IPv4.
+4. **Type**: Specifies the communication semantics. We use only `SOCK_STREAM` for TCP and `SOCK_DGRAM` for UDP.
+5. `SOCK_STREAM` provides sequenced, reliable, two-way, connection-based byte streams. An out-of-band data transmission mechanism may be supported.
+6. `SOCK_DGRAM` supports datagrams (connectionless, unreliable messages of a fixed maximum length).
+7. The type argument serves a second purpose: in addition to specifying a socket type, it may include the bitwise OR of any of the following values, to modify the behavior of socket():
+   - `SOCK_NONBLOCK`: Set the O_NONBLOCK file status flag on the open file description referred to by the new file descriptor.
+   - `SOCK_CLOEXEC`: Set the close-on-exec (FD_CLOEXEC) flag on the new file descriptor.
+```cpp
+sockfd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, 0);
+// Creating a non-blocking UDP socket
+```
+8. In case more than one protocol exists to support a particular socket type within a given protocol family, a particular protocol must be specified in this manner. The protocol number to use is specific to the “communication domain” in which communication is to take place.
+
+### SOCK_STREAM
+1. Sockets of type `SOCK_STREAM` are <font color="red">full-duplex byte streams</font>. They do not preserve record boundaries.
+Q. 
+What is a record boundary?
+A. 
+<font color="Green">However, in protocols like TCP (Transmission Control Protocol), which is implemented using sockets of type SOCK_STREAM, there is no inherent concept of record boundaries. TCP provides a reliable, ordered, and bi-directional stream of bytes between two endpoints. It guarantees that all data sent will be delivered reliably and in the same order it was sent, but it does not preserve the boundaries of the application-level data units. This means that if you send two messages over a TCP connection, the receiver might not be able to tell where one message ends and the next one begins just by looking at the byte stream.
+In practical terms, this means that when you're using TCP sockets, you need to implement your own mechanism for delimiting messages or records if your application requires it. This can be done using techniques such as adding length headers to your messages, using special delimiters to mark the end of each message, or employing higher-level protocols on top of TCP that define their own message format and framing mechanism.</font>
+
+2. A stream socket must be in a connected state before any data may be sent or received on it.
+3. Ensure that data is not lost or duplicated.
+
+### SOCK_DGRAM
+1. Supports datagrams (connectionless, unreliable messages of a fixed maximum length).
+
+#### Return Value
+1. On success, a file descriptor for the new socket is returned.
+2. On error, -1 is returned, and errno is set appropriately.
+
+#### Errors
+1. EACCES: Permission to create a socket of the specified type and/or protocol is denied.
+2. <font color="red">EAFNOSUPPORT: The implementation does not support the specified address family.</font>
+3. <font color="red">EINVAL: Unknown protocol, or protocol family not available.</font>
+4. EMFILE: The per-process limit on the number of open file descriptors has been reached.
+5. ENFILE: The system-wide limit on the total number of open files has been reached.
+6. ENOBUFS or ENOMEM: Insufficient memory is available. The socket cannot be created until sufficient resources are freed.
+7. EPROTONOSUPPORT: The protocol type or the specified protocol is not supported within this domain.

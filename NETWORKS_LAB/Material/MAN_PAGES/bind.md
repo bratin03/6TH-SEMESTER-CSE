@@ -175,3 +175,27 @@ COLOPHON
 
 Linux                                 2019-03-06                               BIND(2)
 ```
+
+### Summary
+
+1. Bind a name to a socket
+2. Prototypes:
+   ```c
+   int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+   ```
+3. `bind()` assigns the address specified by `addr` to the socket referred to by the file descriptor `sockfd`
+4. We will have to typecast the `addr` to `const struct sockaddr *` to avoid compiler warnings
+
+### Return Value
+1. On success, zero is returned
+2. On error, -1 is returned, and `errno` is set appropriately
+
+### Errors
+1. `EACCES`: The address is protected, and the user is not the superuser
+2. `EADDRINUSE`: <font color="red">The given address is already in use</font>
+3. `EINVAL`: <font color="red">The socket is already bound to an address</font>
+a. Trying to bind twice on the same address and same port for same socket descriptor will result in `EINVAL` error
+b. Trying to bind twice on the same address and same port for different socket descriptors will result in `EADDRINUSE` error
+c. Trying to bind on a different address and port for same socket descriptor will result in `EINVAL` error
+4. `ENOTSOCK`: The file descriptor `sockfd` does not refer to a socket
+5. `EBADF`: `sockfd` is not a valid file descriptor
